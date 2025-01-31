@@ -1,3 +1,4 @@
+import type { Modify } from '@/types/operation';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 
 export type OpenApiPathItem = Partial<
@@ -19,5 +20,14 @@ export type OpenApiOperation = Partial<
     | 'deprecated'
     | 'security'
     | 'servers'
+  >
+>;
+
+export type OpenApiObject = Partial<
+  Modify<
+    Omit<OpenAPI.Document, 'openapi'>,
+    {
+      info: Partial<OpenAPI.InfoObject>;
+    }
   >
 >;

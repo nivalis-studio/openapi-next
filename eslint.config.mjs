@@ -12,4 +12,11 @@ export default nivalis(
       'no-empty-function': 'off',
     },
   },
+  {
+    files: ['src/cli/**/*.ts'],
+    rules: {
+      'node/hashbang': 'off',
+      'no-console': 'off',
+    },
+  },
 );
