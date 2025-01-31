@@ -1,0 +1,67 @@
+{
+  "name": "@nivalis/openapi-next",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Route wrappers for Next.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "packageManager": "bun@1.2.1",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "build": "unbuild",
+    "prepublishOnly": "unbuild",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "ts": "tsc",
+    "prepare": "bunx lefthook install"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@commitlint/cli": "19.6.1",
+    "@commitlint/config-conventional": "19.6.0",
+    "@nivalis/eslint-config": "4.3.0",
+    "@nivalis/prettier-config": "3.4.2",
+    "@total-typescript/ts-reset": "0.6.1",
+    "eslint": "9.19.0",
+    "lefthook": "1.10.10",
+    "lint-staged": "15.4.3",
+    "unbuild": "3.3.1",
+    "prettier": "3.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "lint-staged": {
+    "*": "eslint --quiet --fix"
+  },
+  "prettier": "@nivalis/prettier-config",
+  "unbuild": {
+    "declaration": true,
+    "exports": "named",
+    "preserveModules": true,
+    "sourcemap": true
+  }
+}
