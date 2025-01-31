@@ -1,5 +1,6 @@
 /* eslint-disable complexity */
 /* eslint-disable max-statements */
+import { merge } from 'es-toolkit/compat';
 import { isValidMethod } from '@/utils/is-valid-method';
 import {
   ERROR_MESSAGE_SCHEMA,
@@ -11,7 +12,6 @@ import {
 } from '@/open-api/constants';
 import { capitalizeFirstLetter } from '@/utils/capitalize';
 import { getJsonSchema } from '@/zod/schemas';
-import { merge } from '@/utils/merge';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type { ZodObject, ZodRawShape, ZodSchema } from 'zod';
 import type { RouteOperationDefinition } from '@/types/operation';

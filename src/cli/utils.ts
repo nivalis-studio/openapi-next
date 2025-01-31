@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import nodePath from 'node:path';
 import chalk from 'chalk';
-import { merge } from '@/utils/merge';
+import { merge } from 'es-toolkit/compat';
 import { isValidMethod } from '@/utils/is-valid-method';
 import { OPEN_API_VERSION } from '@/cli/constants';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
@@ -85,6 +85,7 @@ export const findConfig = async ({ configPath }: { configPath?: string }) => {
             const url = new URL(`file://${filePathToRoute}`).toString();
             const res = await import(url).then(mod => mod.default || mod);
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             const handlers: any[] = Object.entries(res)
               .filter(([key]) => isValidMethod(key))
               .map(([_key, handler]) => handler);
@@ -417,7 +418,7 @@ export const generatePathsFromBuild = async ({
     console.info(
       chalk.yellowBright(
         `The following paths are ignored by Next REST Framework: ${chalk.bold(
-          ignoredPaths.map(p => `\n- ${p}`),
+          ignoredPaths.map(pth => `\n- ${pth}`),
         )}`,
       ),
     );
