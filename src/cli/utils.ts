@@ -2,11 +2,11 @@ import { existsSync, readdirSync } from 'node:fs';
 import nodePath from 'node:path';
 import chalk from 'chalk';
 import { merge } from 'es-toolkit/compat';
-import { isValidMethod } from '@/utils/is-valid-method';
-import { OPEN_API_VERSION } from '@/cli/constants';
+import { isValidMethod } from '../utils/is-valid-method';
+import { OPEN_API_VERSION } from '../cli/constants';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
-import type { NrfOasData } from '@/open-api/get-paths';
-import type { FrameworkConfig } from '@/types/config';
+import type { NrfOasData } from '../open-api/get-paths';
+import type { FrameworkConfig } from '../types/config';
 
 export const logGenerateErrorForRoute = (path: string, error: unknown) => {
   console.info(

@@ -1,4 +1,4 @@
-import type { OpenApiObject } from '@/types/openapi';
+import type { OpenApiObject } from './openapi';
 
 export type FrameworkConfig = {
   /*!

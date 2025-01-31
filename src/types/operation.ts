@@ -1,5 +1,5 @@
-import type { ValidMethod } from '@/types/methods';
-import type { OpenApiOperation } from '@/types/openapi';
+import type { ValidMethod } from './methods';
+import type { OpenApiOperation } from './openapi';
 import type { NextURL } from 'next/dist/server/web/next-url';
 import type { ResponseCookies } from 'next/dist/server/web/spec-extension/cookies';
 import type { NextRequest, NextResponse } from 'next/server';

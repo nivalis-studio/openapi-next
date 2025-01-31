@@ -5,6 +5,11 @@ export default nivalis(
     tailwindcss: false,
   },
   {
+    rules: {
+      'node/no-extraneous-import': 'off',
+    },
+  },
+  {
     files: ['**/*.spec.ts'],
     rules: {
       'no-console': 'off',

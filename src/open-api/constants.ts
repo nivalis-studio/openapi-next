@@ -1,5 +1,5 @@
 /* eslint-disable id-length */
-import { DEFAULT_ERRORS } from '@/errors/http-errors';
+import { DEFAULT_ERRORS } from '../errors/http-errors';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 
 export const MESSAGE_WITH_ERRORS_SCHEMA: OpenAPI.SchemaObject = {

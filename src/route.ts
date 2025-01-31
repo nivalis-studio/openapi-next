@@ -2,16 +2,16 @@
 /* eslint-disable max-statements */
 import { NextRequest, NextResponse } from 'next/server';
 import qs from 'qs';
-import { DEFAULT_ERRORS } from '@/errors/http-errors';
-import { errorHandler } from '@/errors/handler';
-import { getPathsFromRoute } from '@/open-api/get-paths';
-import { validateSchema } from '@/zod/schemas';
+import { DEFAULT_ERRORS } from './errors/http-errors';
+import { errorHandler } from './errors/handler';
+import { getPathsFromRoute } from './open-api/get-paths';
+import { validateSchema } from './zod/schemas';
 import type {
   BaseParams,
   RouteOperationDefinition,
   TypedNextRequest,
-} from '@/types/operation';
-import type { OpenApiPathItem } from '@/types/openapi';
+} from './types/operation';
+import type { OpenApiPathItem } from './types/openapi';
 
 export const routeHandler = <
   T extends {

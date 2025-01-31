@@ -1,7 +1,8 @@
 /* eslint-disable complexity */
 /* eslint-disable max-statements */
 import { merge } from 'es-toolkit/compat';
-import { isValidMethod } from '@/utils/is-valid-method';
+import { capitalizeFirstLetter } from '../utils/capitalize';
+import { getJsonSchema } from '../zod/schemas';
 import {
   ERROR_MESSAGE_SCHEMA,
   INVALID_PATH_PARAMETERS_RESPONSE,
@@ -9,13 +10,12 @@ import {
   INVALID_REQUEST_BODY_RESPONSE,
   MESSAGE_WITH_ERRORS_SCHEMA,
   UNEXPECTED_ERROR_RESPONSE,
-} from '@/open-api/constants';
-import { capitalizeFirstLetter } from '@/utils/capitalize';
-import { getJsonSchema } from '@/zod/schemas';
+} from '../open-api/constants';
+import { isValidMethod } from '../utils/is-valid-method';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type { ZodObject, ZodRawShape, ZodSchema } from 'zod';
-import type { RouteOperationDefinition } from '@/types/operation';
-import type { OpenApiPathItem } from '@/types/openapi';
+import type { RouteOperationDefinition } from '../types/operation';
+import type { OpenApiPathItem } from '../types/openapi';
 
 const isSchemaRef = (
   schema: OpenAPI.SchemaObject | OpenAPI.ReferenceObject,
@@ -230,7 +230,7 @@ export const getPathsFromRoute = ({
             name,
             in: 'path',
             required: !schema__.isOptional(),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
             schema: schema_,
           } as OpenAPI.ParameterObject;
         });
@@ -282,7 +282,7 @@ export const getPathsFromRoute = ({
               name,
               in: 'query',
               required: !schema__.isOptional(),
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
               schema: schema_,
             } as OpenAPI.ParameterObject;
           }),
