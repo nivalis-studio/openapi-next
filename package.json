@@ -4,12 +4,20 @@
   "version": "0.0.1",
   "description": "Route wrappers for Next.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": false
+  },
+  "homepage": "https://github.com/nivalis-studio/openapi-next#readme",
+  "repository": {
+    "url": "git+https://github.com/nivalis-studio/openapi-next.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nivalis-studio/openapi-next/issues"
   },
   "license": "MIT",
   "packageManager": "bun@1.2.1",
   "bin": {
-    "@nivalis/openapi-next": "./dist/cli/index.mjs"
+    "openapi-next": "dist/cli/index.mjs"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -63,7 +71,10 @@
   },
   "prettier": "@nivalis/prettier-config",
   "unbuild": {
-    "entries": ["src/index.ts", "src/cli/index.ts"],
+    "entries": [
+      "src/index.ts",
+      "src/cli/index.ts"
+    ],
     "rollup": {
       "esbuild": {
         "target": "node22",
