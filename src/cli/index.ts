@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable node/no-process-exit */
 
 import { Command } from 'commander';
 import chalk from 'chalk';
@@ -13,7 +14,7 @@ program
     '--configPath <string>',
     'In case you have multiple docs handlers with different configurations, you can specify which configuration you want to use by providing the path to the API. Example: `/api/my-configuration`.',
   )
-  .description('Generate an OpenAPI spec with Next REST Framework.')
+  .description('Generate an OpenAPI spec with openapi-next.')
   .action(async options => {
     const configPath: string = options.configPath ?? '';
 
@@ -25,6 +26,7 @@ program
       });
     } catch (error) {
       console.error(error);
+
       process.exit(1);
     }
   });
@@ -35,7 +37,7 @@ program
     '--configPath <string>',
     'In case you have multiple docs handlers with different configurations, you can specify which configuration you want to use by providing the path to the API. Example: `/api/my-configuration`.',
   )
-  .description('Validate an OpenAPI spec with Next REST Framework.')
+  .description('Validate an OpenAPI spec with openapi-next.')
   .action(async options => {
     const configPath: string = options.configPath ?? '';
 

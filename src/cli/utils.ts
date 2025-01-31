@@ -47,17 +47,7 @@ const getRouteName = (file: string) =>
     .replaceAll('[', '{')
     .replaceAll(']', '}');
 
-// Convert file path of an API route to an API route name.
-const getApiRouteName = (file: string) =>
-  `/api/${file}`
-    .replace('/index', '')
-    .replaceAll('\\', '/')
-    .replaceAll('[', '{')
-    .replaceAll(']', '}')
-    .replace('.ts', '')
-    .replace('.js', '');
-
-// Find the Next REST Framework config from one of the docs route handlers.
+// Find the openapi-next config from one of the docs route handlers.
 export const findConfig = async ({ configPath }: { configPath?: string }) => {
   const configs: Array<{
     routeName: string;
@@ -114,57 +104,12 @@ export const findConfig = async ({ configPath }: { configPath?: string }) => {
   // Scan `src/app` folder.
   await findAppRouterConfig('src/app');
 
-  // Scan `pages/api` or `src/pages/api` folders for docs API route handlers.
-  const findPagesRouterConfig = async (path: string) => {
-    const pagesRouterPath = nodePath.join(process.cwd(), path);
-
-    if (existsSync(pagesRouterPath)) {
-      const filteredApiRoutes = getNestedFiles(pagesRouterPath, '').filter(
-        file => {
-          if (configPath) {
-            return configPath === getApiRouteName(file);
-          }
-
-          return true;
-        },
-      );
-
-      await Promise.all(
-        filteredApiRoutes.map(async route => {
-          try {
-            const filePathToRoute = nodePath.join(process.cwd(), path, route);
-
-            const url = new URL(`file://${filePathToRoute}`).toString();
-            const res = await import(url).then(mod => mod.default || mod);
-
-            const _config = res.default._frameworkConfig;
-
-            if (_config) {
-              configs.push({
-                routeName: getApiRouteName(route),
-                config: _config,
-              });
-            }
-          } catch {
-            // The API route was not a docs API route.
-          }
-        }),
-      );
-    }
-  };
-
-  // Scan `pages/api` folder.
-  await findPagesRouterConfig('pages/api');
-
-  // Scan `src/pages/api` folder.
-  await findPagesRouterConfig('src/pages/api');
-
   const { routeName, config } = configs[0] ?? { route: '', config: null };
 
   if (!config && configPath) {
     console.error(
       chalk.red(
-        `A \`configPath\` parameter with a value of ${configPath} was provided but no Next REST Framework configs were found.`,
+        `A \`configPath\` parameter with a value of ${configPath} was provided but no openapi-next configs were found.`,
       ),
     );
 
@@ -174,7 +119,7 @@ export const findConfig = async ({ configPath }: { configPath?: string }) => {
   if (!config) {
     console.error(
       chalk.red(
-        'Next REST Framework config not found. Initialize a docs handler to generate the OpenAPI spec.',
+        'openapi-next config not found. Initialize a docs handler to generate the OpenAPI spec.',
       ),
     );
 
@@ -184,14 +129,12 @@ export const findConfig = async ({ configPath }: { configPath?: string }) => {
   if (configs.length > 1) {
     console.info(
       chalk.yellowBright(
-        'Multiple Next REST Framework configs found. Please specify a `configPath` parameter to select a specific config.',
+        'Multiple openapi-next configs found. Please specify a `configPath` parameter to select a specific config.',
       ),
     );
   }
 
-  console.info(
-    chalk.yellowBright(`Using Next REST Framework config: ${routeName}`),
-  );
+  console.info(chalk.yellowBright(`Using openapi-next config: ${routeName}`));
 
   return config;
 };
@@ -255,52 +198,7 @@ export const generatePathsFromBuild = async ({
       file =>
         (file.endsWith('route.ts') || file.endsWith('route.js')) &&
         !file.includes('[...') &&
-        !file.endsWith('rpc/[operationId]/route.ts') &&
-        !file.endsWith('rpc/[operationId]/route.js') &&
         isAllowedRoute(getRouteName(file)),
-    );
-
-  /*
-   * Filter RPC routes to include:
-   * - Remove any routes that are not RPC routes.
-   * - Filter disallowed paths.
-   */
-  const getCleanedRpcRoutes = (files: string[]) =>
-    files.filter(
-      file =>
-        (file.endsWith('rpc/[operationId]/route.ts') ||
-          file.endsWith('rpc/[operationId]/route.js')) &&
-        isAllowedRoute(getRouteName(file)),
-    );
-
-  /*
-   * Filter the API routes to include:
-   * - Remove non-TS/JS files.
-   * - Remove catch-all API routes.
-   * - Filter RPC API routes.
-   * - Filter disallowed paths.
-   */
-  const getCleanedApiRoutes = (files: string[]) =>
-    files.filter(
-      file =>
-        (file.endsWith('.ts') || file.endsWith('.js')) &&
-        !file.includes('[...') &&
-        !file.endsWith('rpc/[operationId].ts') &&
-        !file.endsWith('rpc/[operationId].js') &&
-        isAllowedRoute(getApiRouteName(file)),
-    );
-
-  /*
-   * Filter RPC API routes to include:
-   * - Remove any API routes that are not RPC API routes.
-   * - Filter disallowed paths.
-   */
-  const getCleanedRpcApiRoutes = (files: string[]) =>
-    files.filter(
-      file =>
-        (file.endsWith('rpc/[operationId].ts') ||
-          file.endsWith('rpc/[operationId].js')) &&
-        isAllowedRoute(getApiRouteName(file)),
     );
 
   const isNrfOasData = (x: unknown): x is NrfOasData => {
@@ -321,10 +219,9 @@ export const generatePathsFromBuild = async ({
     if (existsSync(appRouterPath)) {
       const files = getNestedFiles(appRouterPath, '');
       const routes = getCleanedRoutes(files);
-      const rpcRoutes = getCleanedRpcRoutes(files);
 
       await Promise.all(
-        [...routes, ...rpcRoutes].map(async route => {
+        routes.map(async route => {
           try {
             const filePathToRoute = nodePath.join(process.cwd(), path, route);
 
@@ -365,59 +262,10 @@ export const generatePathsFromBuild = async ({
   // Scan `src/app` folder.
   await collectAppRouterPaths('src/app');
 
-  // Scan `pages/api` or `src/pages/api` folders for API route handlers and get the OpenAPI paths.
-  const collectPagesRouterPaths = async (path: string) => {
-    const pagesRouterPath = nodePath.join(process.cwd(), path);
-
-    if (existsSync(pagesRouterPath)) {
-      const files = getNestedFiles(pagesRouterPath, '');
-      const apiRoutes = getCleanedApiRoutes(files);
-      const rpcApiRoutes = getCleanedRpcApiRoutes(files);
-
-      await Promise.all(
-        [...apiRoutes, ...rpcApiRoutes].map(async apiRoute => {
-          try {
-            const filePathToRoute = nodePath.join(
-              process.cwd(),
-              path,
-              apiRoute,
-            );
-
-            const url = new URL(`file://${filePathToRoute}`).toString();
-            const res = await import(url).then(mod => mod.default || mod);
-
-            const isDocsHandler = !!res.default._frameworkConfig;
-
-            if (isDocsHandler) {
-              return;
-            }
-
-            const data = await res.default._getPathsForRoute(
-              getApiRouteName(apiRoute),
-            );
-
-            if (isNrfOasData(data)) {
-              paths = { ...paths, ...data.paths };
-              schemas = { ...schemas, ...data.schemas };
-            }
-          } catch (error) {
-            logGenerateErrorForRoute(getApiRouteName(apiRoute), error);
-          }
-        }),
-      );
-    }
-  };
-
-  // Scan `pages/api` folder.
-  await collectPagesRouterPaths('pages/api');
-
-  // Scan `src/pages/api` folder.
-  await collectPagesRouterPaths('src/pages/api');
-
   if (ignoredPaths.length > 0) {
     console.info(
       chalk.yellowBright(
-        `The following paths are ignored by Next REST Framework: ${chalk.bold(
+        `The following paths are ignored by openapi-next: ${chalk.bold(
           ignoredPaths.map(pth => `\n- ${pth}`),
         )}`,
       ),
@@ -430,7 +278,7 @@ export const generatePathsFromBuild = async ({
   };
 };
 
-// Find Next REST Framework config and generate the OpenAPI spec.
+// Find openapi-next config and generate the OpenAPI spec.
 export const generateOpenApiSpec = async ({
   config,
 }: {
