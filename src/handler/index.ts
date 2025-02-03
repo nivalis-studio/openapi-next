@@ -32,6 +32,17 @@ const DEFAULT_ERROR_HANDLER = (error: unknown) => {
   console.error(error);
 };
 
+/**
+ * Creates a strongly-typed Next.js route handler with built-in request validation and OpenAPI spec generation.
+ * This function provides automatic request validation, response type checking, and OpenAPI documentation generation.
+ * @param {object} options - Configuration options for the route handler
+ * @param {string} options.method - The HTTP method this route handles
+ * @param {string} options.operationId - A unique identifier for this operation
+ * @param {Function} [options.errorHandler] - Custom error handler function
+ * @param {object} [options.openApiPath] - OpenAPI path item object for additional documentation
+ * @param {object} [options.openApiOperation] - OpenAPI operation object for additional documentation
+ * @returns {Function} A Next.js route handler with type safety and request validation
+ */
 export const routeHandler = <Method extends HttpMethod>({
   method,
   operationId,

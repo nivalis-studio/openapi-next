@@ -41,6 +41,14 @@ const isNrfOasData = (x: unknown): x is NrfOasData => {
   return 'paths' in x;
 };
 
+/**
+ * Generates an OpenAPI specification from your Next.js route handlers.
+ * This function scans your project for route handlers and automatically generates
+ * an OpenAPI specification based on the TypeScript types and configurations.
+ * @param {object} config - Configuration options for the OpenAPI spec generation
+ * @param {object} [config.openApiObject] - An OpenAPI Object that can be used to override and extend the auto-generated specification
+ * @returns {Promise<object>} The generated OpenAPI specification
+ */
 export const generateOpenapiSpec = async (
   config: {
     /*! An OpenAPI Object that can be used to override and extend the auto-generated specification: https://swagger.io/specification/#openapi-object */

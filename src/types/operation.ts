@@ -82,6 +82,11 @@ type TypedNextURL<Query = BaseQuery> = {
   searchParams: TypedSearchParams<Query>;
 } & NextURL;
 
+/**
+ * Type definition for a strongly-typed Next.js request with enhanced type safety.
+ * Extends the base NextRequest with additional type information for the request method,
+ * content type, body, and query parameters.
+ */
 export type TypedNextRequest<
   Method extends string = HttpMethod,
   _ContentType = BaseContentType,
@@ -185,5 +190,10 @@ export type RouteOperationDefinition = {
   handler?: TypedRouteHandler;
 };
 
+/**
+ * Type definition for a strongly-typed Next.js response with enhanced type safety.
+ * Extends the base NextResponse with additional type information for the response status,
+ * content type, body, and query parameters.
+ */
 // @ts-expect-error - Keep the original NextResponse functionality with custom types.
 export const TypedNextResponse: typeof TypedNextResponseType = NextResponse;
