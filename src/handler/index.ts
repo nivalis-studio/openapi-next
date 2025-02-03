@@ -5,6 +5,7 @@ import qs from 'qs';
 import { DEFAULT_ERRORS } from '../errors';
 import { validateSchema } from '../lib/zod';
 import { getPathsFromRoute } from '../lib/openapi';
+import { parseContentType } from '../lib/content-type';
 import type { HttpMethod } from '../lib/http';
 import type { OpenApiOperation, OpenApiPathItem } from '../types/open-api';
 import type { BaseContentType } from '../types/content-type';
@@ -73,9 +74,10 @@ export const routeHandler = <Method extends HttpMethod>({
             params: paramsSchema,
           } = input;
 
-          const contentType = reqClone.headers
-            .get('content-type')
-            ?.split(';')[0];
+          const parsedContentType = parseContentType(
+            reqClone.headers.get('content-type'),
+          );
+          const contentType = parsedContentType?.type;
 
           if (contentTypeSchema && contentType !== contentTypeSchema) {
             return NextResponse.json(
