@@ -2,7 +2,10 @@
 import { merge } from 'es-toolkit/compat';
 import { capitalizeFirstLetter } from '../utils/capitalize';
 import { getJsonSchema } from './zod';
-import { UNEXPECTED_ERROR_RESPONSE } from './openapi-errors';
+import {
+  ERROR_MESSAGE_SCHEMA,
+  UNEXPECTED_ERROR_RESPONSE,
+} from './openapi-errors';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type {
   NrfOasData,
@@ -53,7 +56,9 @@ export const getPathsFromRoute = ({
 
   const baseResponseBodySchemaMapping: {
     [key: string]: OpenAPI.SchemaObject;
-  } = {};
+  } = {
+    ErrorMessage: ERROR_MESSAGE_SCHEMA,
+  };
 
   const generatedOperationObject: OpenAPI.OperationObject = {
     operationId,
