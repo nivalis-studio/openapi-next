@@ -5,6 +5,7 @@
 import { existsSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { merge } from 'es-toolkit/compat';
+import { format } from 'prettier';
 import { isValidMethod } from '../utils/is-valid-method';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type { NrfOasData, OpenApiObject } from '../types/open-api';
@@ -143,7 +144,11 @@ export const generateOpenapiSpec = async (
 
   try {
     if (existsSync(path.join(process.cwd(), 'public'))) {
-      writeFileSync(openApiFilePath, JSON.stringify(spec), null);
+      const jsonSpec = await format(JSON.stringify(spec), {
+        parser: 'json',
+      });
+
+      writeFileSync(openApiFilePath, jsonSpec, null);
 
       console.info('OpenAPI spec generated successfully!');
     } else {
