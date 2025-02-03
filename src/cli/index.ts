@@ -133,7 +133,7 @@ export const generateOpenapiSpec = async (
   const spec: OpenAPI.Document = merge(
     {
       openapi: '3.1.0',
-      info: openApiObject?.info,
+      info: openApiObject?.info ?? {},
       paths: sortObjectByKeys(paths),
     },
     components,
