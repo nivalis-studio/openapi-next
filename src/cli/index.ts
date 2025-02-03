@@ -46,18 +46,22 @@ const isNrfOasData = (x: unknown): x is NrfOasData => {
  * Generates an OpenAPI specification from your Next.js route handlers.
  * This function scans your project for route handlers and automatically generates
  * an OpenAPI specification based on the TypeScript types and configurations.
- * @param {object} config - Configuration options for the OpenAPI spec generation
- * @param {object} [config.openApiObject] - An OpenAPI Object that can be used to override and extend the auto-generated specification
+ * @param {object} info - Configuration options for the OpenAPI spec generation
+ * @param {string} info.title - The title of the API
+ * @param {string|undefined} info.description - A description of the API
+ * @param {string} info.version - The version of the API
+ * @param {object} [openApiObject] - An OpenAPI Object that can be used to override and extend the auto-generated specification
  * @returns {Promise<object>} The generated OpenAPI specification
  */
 export const generateOpenapiSpec = async (
-  config: {
-    /*! An OpenAPI Object that can be used to override and extend the auto-generated specification: https://swagger.io/specification/#openapi-object */
-    openApiObject?: OpenApiObject | undefined;
-  } = {},
+  info: {
+    title: string;
+    description: string | undefined;
+    version: string;
+  },
+  openApiObject?: OpenApiObject,
 ) => {
   console.log('Generating OpenAPI spec...');
-  const { openApiObject } = config;
 
   const appRouterPath = path.join(process.cwd(), './src/app/api/');
 
@@ -133,7 +137,7 @@ export const generateOpenapiSpec = async (
   const spec: OpenAPI.Document = merge(
     {
       openapi: '3.1.0',
-      info: openApiObject?.info ?? {},
+      info: merge(info, openApiObject?.info),
       paths: sortObjectByKeys(paths),
     },
     components,
