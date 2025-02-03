@@ -57,7 +57,7 @@ export const routeHandler = <Method extends HttpMethod>({
   }) => {
     const reqHandler = async (
       req_: NextRequest,
-      context: { params: BaseParams },
+      context: { params: Promise<BaseParams> },
     ) => {
       try {
         if (req_.method !== method) {
@@ -178,7 +178,7 @@ export const routeHandler = <Method extends HttpMethod>({
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { valid, errors, data } = validateSchema({
               schema: paramsSchema,
-              obj: context.params,
+              obj: await context.params,
             });
 
             if (!valid) {
@@ -191,8 +191,8 @@ export const routeHandler = <Method extends HttpMethod>({
               );
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            context.params = data;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            context.params = new Promise(data);
           }
         }
 
