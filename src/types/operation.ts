@@ -1,115 +1,31 @@
-import type { ValidMethod } from './methods';
-import type { OpenApiOperation } from './openapi';
-import type { NextURL } from 'next/dist/server/web/next-url';
-import type { ResponseCookies } from 'next/dist/server/web/spec-extension/cookies';
-import type { NextRequest, NextResponse } from 'next/server';
-import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
+import { NextResponse } from 'next/server';
 import type { ZodSchema, z } from 'zod';
+import type {
+  AnyContentTypeWithAutocompleteForMostCommonOnes,
+  BaseContentType,
+} from './content-type';
+import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
+import type { NextURL } from 'next/dist/server/web/next-url';
+import type { NextRequest } from 'next/server';
+import type { HttpMethod } from '../lib/http';
+import type { ResponseCookies } from 'next/dist/compiled/@edge-runtime/cookies';
+import type { AnyCase, Modify } from './helpers';
 
-// Ref: https://twitter.com/diegohaz/status/1524257274012876801
-export type StringWithAutocomplete<T> =
-  | T
-  | (string & { [key in never]: never });
-
-export type AnyCase<T extends string> = T | Uppercase<T> | Lowercase<T>;
-export type Modify<T, R> = Omit<T, keyof R> & R;
-
-// Content types ref: https://stackoverflow.com/a/48704300
-export type AnyContentTypeWithAutocompleteForMostCommonOnes =
-  StringWithAutocomplete<
-    | 'application/java-archive'
-    | 'application/EDI-X12'
-    | 'application/EDIFACT'
-    | 'application/javascript'
-    | 'application/octet-stream'
-    | 'application/ogg'
-    | 'application/pdf'
-    | 'application/xhtml+xml'
-    | 'application/x-shockwave-flash'
-    | 'application/json'
-    | 'application/ld+json'
-    | 'application/xml'
-    | 'application/zip'
-    | 'application/x-www-form-urlencoded'
-    /********************/
-    | 'audio/mpeg'
-    | 'audio/x-ms-wma'
-    | 'audio/vnd.rn-realaudio'
-    | 'audio/x-wav'
-    /********************/
-    | 'image/gif'
-    | 'image/jpeg'
-    | 'image/png'
-    | 'image/tiff'
-    | 'image/vnd.microsoft.icon'
-    | 'image/x-icon'
-    | 'image/vnd.djvu'
-    | 'image/svg+xml'
-    /********************/
-    | 'multipart/mixed'
-    | 'multipart/alternative'
-    | 'multipart/related'
-    | 'multipart/form-data'
-    /********************/
-    | 'text/css'
-    | 'text/csv'
-    | 'text/html'
-    | 'text/javascript'
-    | 'text/plain'
-    | 'text/xml'
-    /********************/
-    | 'video/mpeg'
-    | 'video/mp4'
-    | 'video/quicktime'
-    | 'video/x-ms-wmv'
-    | 'video/x-msvideo'
-    | 'video/x-flv'
-    | 'video/webm'
-    /********************/
-    | 'application/vnd.android.package-archive'
-    | 'application/vnd.oasis.opendocument.text'
-    | 'application/vnd.oasis.opendocument.spreadsheet'
-    | 'application/vnd.oasis.opendocument.presentation'
-    | 'application/vnd.oasis.opendocument.graphics'
-    | 'application/vnd.ms-excel'
-    | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    | 'application/vnd.ms-powerpoint'
-    | 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-    | 'application/msword'
-    | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    | 'application/vnd.mozilla.xul+xml'
-  >;
-
-export type ContentTypesThatSupportInputValidation =
-  | 'application/json'
-  | 'application/x-www-form-urlencoded'
-  | 'multipart/form-data';
-
-export type BaseContentType = AnyContentTypeWithAutocompleteForMostCommonOnes;
-export type BaseStatus = number;
+export type BaseOptions = { [key: string]: unknown };
 export type BaseQuery = { [key: string]: string | string[] };
 export type BaseParams = { [key: string]: string };
-export type BaseOptions = { [key: string]: unknown };
+export type BaseStatus = number;
 
-type InputObject<
+export type InputObject<
   ContentType = BaseContentType,
   Body = unknown,
   Query = BaseQuery,
   Params = BaseParams,
 > = {
   contentType?: ContentType;
-  /*! Body schema is supported only for certain content types that support input validation. */
-  body?: ContentType extends ContentTypesThatSupportInputValidation
-    ? ZodSchema<Body>
-    : never;
-  /*! If defined, this will override the body schema for the OpenAPI spec. */
-  bodySchema?: OpenAPI.SchemaObject | OpenAPI.ReferenceObject;
+  body?: ZodSchema<Body>;
   query?: ZodSchema<Query>;
-  /*! If defined, this will override the query schema for the OpenAPI spec. */
-  querySchema?: OpenAPI.SchemaObject | OpenAPI.ReferenceObject;
   params?: ZodSchema<Params>;
-  /*! If defined, this will override the params schema for the OpenAPI spec. */
-  paramsSchema?: OpenAPI.SchemaObject | OpenAPI.ReferenceObject;
 };
 
 export type OutputObject<
@@ -167,7 +83,7 @@ type TypedNextURL<Query = BaseQuery> = {
 } & NextURL;
 
 export type TypedNextRequest<
-  Method extends string = ValidMethod,
+  Method extends string = HttpMethod,
   _ContentType = BaseContentType,
   Body = unknown,
   Query = BaseQuery,
@@ -234,8 +150,8 @@ export declare class TypedNextResponseType<
   ): TypedNextResponseType<unknown, Status, ContentType>;
 }
 
-type TypedRouteHandler<
-  Method extends ValidMethod = ValidMethod,
+export type TypedRouteHandler<
+  Method extends HttpMethod = HttpMethod,
   ContentType extends BaseContentType = BaseContentType,
   Body = unknown,
   Query extends BaseQuery = BaseQuery,
@@ -264,9 +180,10 @@ type TypedRouteHandler<
 ) => Promise<TypedResponse> | TypedResponse;
 
 export type RouteOperationDefinition = {
-  method: ValidMethod;
-  openApiOperation?: OpenApiOperation;
   input?: InputObject;
   outputs?: readonly OutputObject[];
   handler?: TypedRouteHandler;
 };
+
+// @ts-expect-error - Keep the original NextResponse functionality with custom types.
+export const TypedNextResponse: typeof TypedNextResponseType = NextResponse;

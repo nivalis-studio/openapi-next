@@ -1,2 +1,3 @@
-export { routeHandler as route } from './route';
-export { docsRoute } from './docs/route';
+export { generateOpenapiSpec } from './cli';
+export { routeHandler as route } from './handler';
+export { type TypedNextRequest, TypedNextResponse } from './types/operation';

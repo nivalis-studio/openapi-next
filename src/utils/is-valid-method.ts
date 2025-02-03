@@ -1,5 +1,14 @@
-import { VALID_METHODS } from '../lib/methods';
-import type { ValidMethod } from '../types/methods';
+import type { HttpMethod } from '../lib/http';
 
-export const isValidMethod = (x: unknown): x is ValidMethod =>
-  VALID_METHODS.includes(x as ValidMethod);
+const HTTP_METHODS = [
+  'GET',
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+  'OPTIONS',
+  'HEAD',
+] as const;
+
+export const isValidMethod = (x: unknown): x is HttpMethod =>
+  HTTP_METHODS.includes(x as HttpMethod);

@@ -1,5 +1,5 @@
-import type { Modify } from './operation';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
+import type { Modify } from './helpers';
 
 export type OpenApiPathItem = Partial<
   Pick<
@@ -31,3 +31,8 @@ export type OpenApiObject = Partial<
     }
   >
 >;
+
+export type NrfOasData = {
+  paths?: OpenAPI.PathsObject;
+  schemas?: { [key: string]: OpenAPI.SchemaObject };
+};
