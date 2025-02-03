@@ -4,7 +4,6 @@ import type {
   AnyContentTypeWithAutocompleteForMostCommonOnes,
   BaseContentType,
 } from './content-type';
-import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type { NextURL } from 'next/dist/server/web/next-url';
 import type { NextRequest } from 'next/server';
 import type { HttpMethod } from '../lib/http';
@@ -35,9 +34,6 @@ export type OutputObject<
     AnyContentTypeWithAutocompleteForMostCommonOnes = AnyContentTypeWithAutocompleteForMostCommonOnes,
 > = {
   body: ZodSchema<Body>;
-  bodySchema?:
-    | OpenAPI.SchemaObject
-    | OpenAPI.ReferenceObject /*! If defined, this will override the body schema for the OpenAPI spec. */;
   status: Status;
   contentType: ContentType;
   name?: string /*! A custom name for the response, used for the generated component name in the OpenAPI spec. */;

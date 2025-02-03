@@ -106,7 +106,7 @@ export const getPathsFromRoute = ({
   };
 
   generatedOperationObject.responses = outputs?.reduce(
-    (obj, { status, contentType, body, bodySchema, name }) => {
+    (obj, { status, contentType, body, name }) => {
       const occurrenceOfStatusCode = usedStatusCodes.includes(status)
         ? usedStatusCodes.filter(sts => sts === status).length + 1
         : '';
@@ -119,13 +119,11 @@ export const getPathsFromRoute = ({
 
       usedStatusCodes.push(status);
 
-      const schema =
-        bodySchema ??
-        getJsonSchema({
-          schema: body,
-          operationId,
-          type: 'output-body',
-        });
+      const schema = getJsonSchema({
+        schema: body,
+        operationId,
+        type: 'output-body',
+      });
 
       const ref = isSchemaRef(schema)
         ? schema.$ref
@@ -143,9 +141,7 @@ export const getPathsFromRoute = ({
       }
 
       const description =
-        bodySchema?.description ??
-        body._def.description ??
-        `Response for status ${status}`;
+        body._def.description ?? `Response for status ${status}`;
 
       return Object.assign(obj, {
         [status]: {
