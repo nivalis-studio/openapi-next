@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 /* eslint-disable max-depth */
 /* eslint-disable max-statements */
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,6 +11,7 @@ import type { HttpMethod } from '../lib/http';
 import type { OpenApiOperation, OpenApiPathItem } from '../types/open-api';
 import type { BaseContentType } from '../types/content-type';
 import type {
+  ActionContext,
   BaseOptions,
   BaseParams,
   BaseQuery,
@@ -17,6 +19,7 @@ import type {
   InputObject,
   OutputObject,
   TypedNextRequest,
+  TypedRouteAction,
   TypedRouteHandler,
 } from '../types/operation';
 
@@ -49,7 +52,7 @@ export const routeHandler = <Method extends HttpMethod>({
   errorHandler = DEFAULT_ERROR_HANDLER,
   ...options
 }: RouteHandlerOptions<Method>) => {
-  const createOperation = (operation: {
+  const createHandlerOperation = (operation: {
     input?: InputObject;
     outputs?: readonly OutputObject[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,8 +235,175 @@ export const routeHandler = <Method extends HttpMethod>({
     } as { [key in Method]: typeof reqHandler };
   };
 
+  const createActionOperation = (operation: {
+    input?: InputObject;
+    outputs?: readonly OutputObject[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    action: TypedRouteAction<any, any, any, any, any, any>;
+  }) => {
+    const reqHandler = async (
+      req_: NextRequest,
+      context: { params: Promise<BaseParams> },
+    ) => {
+      try {
+        if (req_.method !== method) {
+          return NextResponse.json(
+            { message: DEFAULT_ERRORS.methodNotAllowed },
+            { status: 405 },
+          );
+        }
+
+        const { input, action } = operation;
+
+        const _reqClone = req_.clone() as NextRequest;
+
+        const reqClone = new NextRequest(_reqClone.url, {
+          method: _reqClone.method,
+          headers: _reqClone.headers,
+        });
+
+        reqClone.json = async () => await req_.clone().json();
+
+        const actionContext: ActionContext<Body, any, any> = {
+          body: undefined as unknown as Body,
+          query: undefined as unknown,
+          params: undefined as unknown,
+        };
+
+        if (input) {
+          const {
+            body: bodySchema,
+            query: querySchema,
+            contentType: contentTypeSchema,
+            params: paramsSchema,
+          } = input;
+
+          const parsedContentType = parseContentType(
+            reqClone.headers.get('content-type'),
+          );
+          const contentType = parsedContentType?.type;
+
+          if (contentTypeSchema && contentType !== contentTypeSchema) {
+            return NextResponse.json(
+              { message: DEFAULT_ERRORS.invalidMediaType },
+              { status: 415, headers: { Allow: contentTypeSchema } },
+            );
+          }
+
+          if (bodySchema && contentType === 'application/json') {
+            try {
+              const json = await reqClone.json();
+
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const { valid, errors, data } = validateSchema({
+                schema: bodySchema,
+                obj: json,
+              });
+
+              if (!valid) {
+                return NextResponse.json(
+                  {
+                    message: DEFAULT_ERRORS.invalidRequestBody,
+                    errors,
+                  },
+                  { status: 400 },
+                );
+              }
+
+              actionContext.body = data as Body;
+            } catch {
+              return NextResponse.json(
+                {
+                  message: `${DEFAULT_ERRORS.invalidRequestBody} Failed to parse JSON body.`,
+                },
+                { status: 400 },
+              );
+            }
+          }
+
+          if (querySchema) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const { valid, errors, data } = validateSchema({
+              schema: querySchema,
+              obj: qs.parse(reqClone.nextUrl.search, {
+                ignoreQueryPrefix: true,
+              }),
+            });
+
+            if (!valid) {
+              return NextResponse.json(
+                {
+                  message: DEFAULT_ERRORS.invalidQueryParameters,
+                  errors,
+                },
+                { status: 400 },
+              );
+            }
+
+            actionContext.query = data;
+          }
+
+          if (paramsSchema) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const { valid, errors, data } = validateSchema({
+              schema: paramsSchema,
+              obj: await context.params,
+            });
+
+            if (!valid) {
+              return NextResponse.json(
+                {
+                  message: DEFAULT_ERRORS.invalidPathParameters,
+                  errors,
+                },
+                { status: 400 },
+              );
+            }
+
+            actionContext.params = data;
+          }
+        }
+
+        const res = await action?.(actionContext, {});
+
+        if (!res) {
+          return NextResponse.json(
+            { message: DEFAULT_ERRORS.notImplemented },
+            { status: 501 },
+          );
+        }
+
+        return res;
+      } catch (error) {
+        errorHandler(error);
+
+        return NextResponse.json(
+          { message: DEFAULT_ERRORS.unexpectedError },
+          { status: 500 },
+        );
+      }
+    };
+
+    reqHandler._generateOpenApi = (routeName: string) =>
+      getPathsFromRoute({
+        method,
+        routeName,
+        operation,
+        operationId,
+        openApiPath: options?.openApiPath,
+        openApiOperation: options?.openApiOperation,
+      });
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return {
+      [method]: reqHandler,
+    } as { [key in Method]: typeof reqHandler };
+  };
+
   return {
-    handler: (handler: TypedRouteHandler) => createOperation({ handler }),
+    handler: (handler: TypedRouteHandler) =>
+      createHandlerOperation({ handler }),
+    action: (action: TypedRouteAction) => createActionOperation({ action }),
 
     outputs: <
       ResponseBody extends BaseOptions,
@@ -258,7 +428,21 @@ export const routeHandler = <Method extends HttpMethod>({
           ResponseContentType,
           Outputs
         >,
-      ) => createOperation({ outputs, handler }),
+      ) => createHandlerOperation({ outputs, handler }),
+      action: (
+        action: TypedRouteAction<
+          Method,
+          BaseContentType,
+          unknown,
+          BaseQuery,
+          BaseParams,
+          BaseOptions,
+          ResponseBody,
+          Status,
+          ResponseContentType,
+          Outputs
+        >,
+      ) => createActionOperation({ outputs, action }),
     }),
 
     input: <
@@ -271,7 +455,10 @@ export const routeHandler = <Method extends HttpMethod>({
     ) => ({
       handler: (
         handler: TypedRouteHandler<Method, ContentType, Body, Query, Params>,
-      ) => createOperation({ input, handler }),
+      ) => createHandlerOperation({ input, handler }),
+      action: (
+        action: TypedRouteAction<Method, ContentType, Body, Query, Params>,
+      ) => createActionOperation({ input, action }),
 
       outputs: <
         ResponseBody extends BaseOptions,
@@ -296,7 +483,22 @@ export const routeHandler = <Method extends HttpMethod>({
             ResponseContentType,
             Outputs
           >,
-        ) => createOperation({ input, outputs, handler }),
+        ) => createHandlerOperation({ input, outputs, handler }),
+
+        action: (
+          action: TypedRouteAction<
+            Method,
+            ContentType,
+            Body,
+            Query,
+            Params,
+            BaseOptions,
+            ResponseBody,
+            Status,
+            ResponseContentType,
+            Outputs
+          >,
+        ) => createActionOperation({ input, outputs, action }),
       }),
     }),
   };

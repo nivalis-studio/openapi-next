@@ -180,6 +180,44 @@ export type TypedRouteHandler<
   options: Options,
 ) => Promise<TypedResponse> | TypedResponse;
 
+export type ActionContext<
+  Body = unknown,
+  Query extends BaseQuery = BaseQuery,
+  Params extends BaseParams = BaseParams,
+> = {
+  body: Body;
+  query: Query;
+  params: Params;
+};
+
+export type TypedRouteAction<
+  _Method extends HttpMethod = HttpMethod,
+  _ContentType extends BaseContentType = BaseContentType,
+  Body = unknown,
+  Query extends BaseQuery = BaseQuery,
+  Params extends BaseParams = BaseParams,
+  Options extends BaseOptions = BaseOptions,
+  ResponseBody = unknown,
+  Status extends BaseStatus = BaseStatus,
+  ResponseContentType extends BaseContentType = BaseContentType,
+  Outputs extends ReadonlyArray<
+    OutputObject<ResponseBody, Status, ResponseContentType>
+  > = ReadonlyArray<OutputObject<ResponseBody, Status, ResponseContentType>>,
+  // eslint-disable-next-line style/type-generic-spacing
+  TypedResponse =
+    | TypedNextResponseType<
+        z.infer<Outputs[number]['body']>,
+        Outputs[number]['status'],
+        Outputs[number]['contentType']
+      >
+    | NextResponse<z.infer<Outputs[number]['body']>>
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+    | void,
+> = (
+  context: ActionContext<Body, Query, Params>,
+  options: Options,
+) => Promise<TypedResponse> | TypedResponse;
+
 export type RouteOperationDefinition = {
   input?: InputObject;
   outputs?: readonly OutputObject[];
