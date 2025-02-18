@@ -51,6 +51,8 @@ export const getJsonSchema = ({
   type: SchemaType;
   zodToJsonOptions?: Partial<Options<'openApi3'>>;
 }): OpenAPI.SchemaObject => {
+  console.log('getJsonSchema', { zodToJsonOptions });
+
   if (isZodSchema(schema)) {
     try {
       return zodToJsonSchema(schema, {

@@ -223,8 +223,10 @@ export const routeHandler = <Method extends HttpMethod>({
     reqHandler._generateOpenApi = (
       routeName: string,
       zodToJsonOptions?: Partial<Options<'openApi3'>>,
-    ) =>
-      getPathsFromRoute({
+    ) => {
+      console.log('_generateOpenApi', { zodToJsonOptions });
+
+      return getPathsFromRoute({
         method,
         routeName,
         operation,
@@ -233,6 +235,7 @@ export const routeHandler = <Method extends HttpMethod>({
         openApiOperation: options?.openApiOperation,
         zodToJsonOptions,
       });
+    };
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return {

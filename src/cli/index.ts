@@ -68,6 +68,7 @@ export const generateOpenapiSpec = async (
   zodToJsonOptions?: Partial<Options<'openApi3'>>,
 ) => {
   console.log('Generating OpenAPI spec...');
+  console.log('generateOpenapiSpec', { zodToJsonOptions });
 
   const appRouterPath = path.join(process.cwd(), './src/app/api/');
 
