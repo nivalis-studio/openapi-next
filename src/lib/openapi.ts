@@ -41,8 +41,6 @@ export const getPathsFromRoute = ({
   const paths: OpenAPI.PathsObject = {};
   const method = method_.toLowerCase();
 
-  console.log('getPathsFromRoute', { zodToJsonOptions });
-
   const requestBodySchemas: {
     [key: string]: {
       key: string;
