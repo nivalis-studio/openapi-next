@@ -22,6 +22,7 @@ import type {
   TypedRouteAction,
   TypedRouteHandler,
 } from '../types/operation';
+import type { Options } from 'zod-to-json-schema';
 
 type RouteHandlerOptions<Method extends HttpMethod> = {
   method: Method;
@@ -219,7 +220,10 @@ export const routeHandler = <Method extends HttpMethod>({
       }
     };
 
-    reqHandler._generateOpenApi = (routeName: string) =>
+    reqHandler._generateOpenApi = (
+      routeName: string,
+      zodToJsonOptions?: Partial<Options<'openApi3'>>,
+    ) =>
       getPathsFromRoute({
         method,
         routeName,
@@ -227,6 +231,7 @@ export const routeHandler = <Method extends HttpMethod>({
         operationId,
         openApiPath: options?.openApiPath,
         openApiOperation: options?.openApiOperation,
+        zodToJsonOptions,
       });
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

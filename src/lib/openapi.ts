@@ -15,6 +15,7 @@ import type {
 import type { RouteOperationDefinition } from '../types/operation';
 import type { HttpMethod } from './http';
 import type { ZodObject, ZodRawShape, ZodSchema } from 'zod';
+import type { Options } from 'zod-to-json-schema';
 
 const isSchemaRef = (
   schema: OpenAPI.SchemaObject | OpenAPI.ReferenceObject,
@@ -27,6 +28,7 @@ export const getPathsFromRoute = ({
   routeName,
   openApiPath,
   openApiOperation,
+  zodToJsonOptions,
 }: {
   method: HttpMethod;
   operationId: string;
@@ -34,6 +36,7 @@ export const getPathsFromRoute = ({
   routeName: string;
   openApiPath?: OpenApiPathItem;
   openApiOperation?: OpenApiOperation;
+  zodToJsonOptions?: Partial<Options<'openApi3'>>;
 }): NrfOasData => {
   const paths: OpenAPI.PathsObject = {};
   const method = method_.toLowerCase();
@@ -73,6 +76,7 @@ export const getPathsFromRoute = ({
       schema: input.body,
       operationId,
       type: 'input-body',
+      zodToJsonOptions,
     });
 
     const ref = isSchemaRef(schema)
@@ -128,6 +132,7 @@ export const getPathsFromRoute = ({
         schema: body,
         operationId,
         type: 'output-body',
+        zodToJsonOptions,
       });
 
       const ref = isSchemaRef(schema)

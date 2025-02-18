@@ -9,9 +9,13 @@ import { format } from 'prettier';
 import { isValidMethod } from '../utils/is-valid-method';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type { NrfOasData, OpenApiObject } from '../types/open-api';
+import type { Options } from 'zod-to-json-schema';
 
 type RequestHandler = {
-  _generateOpenApi: (routeName: string) => NrfOasData;
+  _generateOpenApi: (
+    routeName: string,
+    zodToJsonOptions?: Partial<Options<'openApi3'>>,
+  ) => NrfOasData;
 };
 
 /*
@@ -51,6 +55,7 @@ const isNrfOasData = (x: unknown): x is NrfOasData => {
  * @param {string|undefined} info.description - A description of the API
  * @param {string} info.version - The version of the API
  * @param {object} [openApiObject] - An OpenAPI Object that can be used to override and extend the auto-generated specification
+ * @param {object} [zodToJsonOptions] - Options to pass to the `zod-to-json-schema` library
  * @returns {Promise<object>} The generated OpenAPI specification
  */
 export const generateOpenapiSpec = async (
@@ -60,6 +65,7 @@ export const generateOpenapiSpec = async (
     version: string;
   },
   openApiObject?: OpenApiObject,
+  zodToJsonOptions?: Partial<Options<'openApi3'>>,
 ) => {
   console.log('Generating OpenAPI spec...');
 
@@ -105,7 +111,10 @@ export const generateOpenapiSpec = async (
       .map(([_key, handler]) => handler as RequestHandler);
 
     for (const handler of handlers) {
-      const data = handler._generateOpenApi(getRouteName(route));
+      const data = handler._generateOpenApi(
+        getRouteName(route),
+        zodToJsonOptions,
+      );
 
       if (isNrfOasData(data)) {
         paths = { ...paths, ...data.paths };

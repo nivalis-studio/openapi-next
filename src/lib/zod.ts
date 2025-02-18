@@ -1,4 +1,5 @@
 import zodToJsonSchema from 'zod-to-json-schema';
+import type { Options } from 'zod-to-json-schema';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type { ZodSchema } from 'zod';
 
@@ -43,15 +44,18 @@ export const getJsonSchema = ({
   schema,
   operationId,
   type,
+  zodToJsonOptions,
 }: {
   schema: ZodSchema;
   operationId: string;
   type: SchemaType;
+  zodToJsonOptions?: Partial<Options<'openApi3'>>;
 }): OpenAPI.SchemaObject => {
   if (isZodSchema(schema)) {
     try {
       return zodToJsonSchema(schema, {
         $refStrategy: 'none',
+        ...zodToJsonOptions,
         target: 'openApi3',
       });
     } catch {
