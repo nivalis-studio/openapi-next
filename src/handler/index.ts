@@ -97,7 +97,10 @@ export const routeHandler = <Method extends HttpMethod>({
           if (contentTypeSchema && contentType !== contentTypeSchema) {
             return NextResponse.json(
               { message: DEFAULT_ERRORS.invalidMediaType },
-              { status: 415, headers: { Allow: contentTypeSchema } },
+              {
+                status: 415,
+                headers: { Allow: contentTypeSchema, NotAllowed: contentType },
+              },
             );
           }
 
@@ -291,7 +294,10 @@ export const routeHandler = <Method extends HttpMethod>({
           if (contentTypeSchema && contentType !== contentTypeSchema) {
             return NextResponse.json(
               { message: DEFAULT_ERRORS.invalidMediaType },
-              { status: 415, headers: { Allow: contentTypeSchema } },
+              {
+                status: 415,
+                headers: { Allow: contentTypeSchema, NotAllowed: contentType },
+              },
             );
           }
 
