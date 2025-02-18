@@ -162,6 +162,7 @@ export const routeHandler = <Method extends HttpMethod>({
               );
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             actionContext.query = data;
           }
 
@@ -182,6 +183,7 @@ export const routeHandler = <Method extends HttpMethod>({
               );
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             actionContext.params = data;
           }
         }

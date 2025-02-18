@@ -50,12 +50,13 @@ const isNrfOasData = (x: unknown): x is NrfOasData => {
  * Generates an OpenAPI specification from your Next.js route handlers.
  * This function scans your project for route handlers and automatically generates
  * an OpenAPI specification based on the TypeScript types and configurations.
- * @param {object} info - Configuration options for the OpenAPI spec generation
+ * @param {object} info - Configuration options for the API
  * @param {string} info.title - The title of the API
  * @param {string|undefined} info.description - A description of the API
  * @param {string} info.version - The version of the API
- * @param {object} [openApiObject] - An OpenAPI Object that can be used to override and extend the auto-generated specification
- * @param {object} [zodToJsonOptions] - Options to pass to the `zod-to-json-schema` library
+ * @param {object} options - Additional configuration options for OpenAPI generation
+ * @param {object} options.openApiObject - An OpenAPI Object that can be used to override and extend the auto-generated specification
+ * @param {object} options.zodToJsonOptions - Options to pass to the `zod-to-json-schema` library
  * @returns {Promise<object>} The generated OpenAPI specification
  */
 export const generateOpenapiSpec = async (
@@ -64,9 +65,13 @@ export const generateOpenapiSpec = async (
     description: string | undefined;
     version: string;
   },
-  openApiObject?: OpenApiObject,
-  zodToJsonOptions?: Partial<Options<'openApi3'>>,
+  options?: {
+    openApiObject?: OpenApiObject;
+    zodToJsonOptions?: Partial<Options<'openApi3'>>;
+  },
 ) => {
+  const { openApiObject, zodToJsonOptions } = options ?? {};
+
   console.log('Generating OpenAPI spec...');
 
   const appRouterPath = path.join(process.cwd(), './src/app/api/');
