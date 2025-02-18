@@ -74,7 +74,7 @@ export const parseContentType = (
   }
 
   let index = header.indexOf(';');
-  const type = index ? header.slice(0, index).trim() : header.trim();
+  const type = index === -1 ? header.trim() : header.slice(0, index).trim();
 
   if (!mediaTypeRE.test(type)) {
     return defaultContentType;
