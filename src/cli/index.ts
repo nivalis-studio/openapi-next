@@ -1,3 +1,4 @@
+/* eslint-disable max-statements */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable unicorn/no-process-exit */
 /* eslint-disable node/no-process-exit */
@@ -116,14 +117,27 @@ export const generateOpenapiSpec = async (
       .map(([_key, handler]) => handler as RequestHandler);
 
     for (const handler of handlers) {
-      const data = handler._generateOpenApi(
-        getRouteName(route),
-        zodToJsonOptions,
-      );
+      try {
+        const data = handler._generateOpenApi(
+          getRouteName(route),
+          zodToJsonOptions,
+        );
 
-      if (isNrfOasData(data)) {
-        paths = { ...paths, ...data.paths };
-        schemas = { ...schemas, ...data.schemas };
+        if (isNrfOasData(data)) {
+          paths = { ...paths, ...data.paths };
+          schemas = { ...schemas, ...data.schemas };
+        }
+      } catch (error) {
+        if (
+          !(
+            error instanceof TypeError &&
+            error.message.includes('._generateOpenApi is not a function')
+          )
+        ) {
+          console.error(error);
+        }
+
+        continue;
       }
     }
   }
