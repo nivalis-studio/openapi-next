@@ -10,7 +10,7 @@ export const ERROR_MESSAGE_SCHEMA: OpenAPI.SchemaObject = {
 };
 
 export const UNEXPECTED_ERROR_RESPONSE: OpenAPI.ResponseObject = {
-  description: DEFAULT_ERRORS.unexpectedError,
+  description: DEFAULT_ERRORS.internalServerError,
   content: {
     'application/json': {
       schema: {

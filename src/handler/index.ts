@@ -2,10 +2,12 @@
 /* eslint-disable max-statements */
 import { NextRequest, NextResponse } from 'next/server';
 import qs from 'qs';
+import { httpStatus } from '@nivalis/std';
 import { DEFAULT_ERRORS } from '../errors';
 import { validateSchema } from '../lib/zod';
 import { getPathsFromRoute } from '../lib/openapi';
 import { parseContentType } from '../lib/content-type';
+import { openapiFailure } from '../lib/response';
 import type { HttpMethod } from '../lib/http';
 import type { OpenApiOperation, OpenApiPathItem } from '../types/open-api';
 import type { BaseContentType } from '../types/content-type';
@@ -63,8 +65,11 @@ export const routeHandler = <Method extends HttpMethod>({
       try {
         if (req_.method !== method) {
           return NextResponse.json(
-            { message: DEFAULT_ERRORS.methodNotAllowed },
-            { status: 405 },
+            openapiFailure({
+              message: DEFAULT_ERRORS.methodNotAllowed,
+              statusCode: httpStatus.methodNotAllowed,
+            }),
+            { status: httpStatus.methodNotAllowed },
           );
         }
 
@@ -101,9 +106,12 @@ export const routeHandler = <Method extends HttpMethod>({
 
           if (contentTypeSchema && contentType !== contentTypeSchema) {
             return NextResponse.json(
-              { message: DEFAULT_ERRORS.invalidMediaType },
+              openapiFailure({
+                message: DEFAULT_ERRORS.unsupportedMediaType,
+                statusCode: httpStatus.unsupportedMediaType,
+              }),
               {
-                status: 415,
+                status: httpStatus.unsupportedMediaType,
                 headers: {
                   Allow: contentTypeSchema,
                   'Not-Allowed': contentType,
@@ -124,21 +132,23 @@ export const routeHandler = <Method extends HttpMethod>({
 
               if (!valid) {
                 return NextResponse.json(
-                  {
+                  openapiFailure({
                     message: DEFAULT_ERRORS.invalidRequestBody,
-                    errors,
-                  },
-                  { status: 400 },
+                    error: errors,
+                    statusCode: httpStatus.badRequest,
+                  }),
+                  { status: httpStatus.badRequest },
                 );
               }
 
               actionContext.body = data as Body;
             } catch {
               return NextResponse.json(
-                {
+                openapiFailure({
                   message: `${DEFAULT_ERRORS.invalidRequestBody} Failed to parse JSON body.`,
-                },
-                { status: 400 },
+                  statusCode: httpStatus.badRequest,
+                }),
+                { status: httpStatus.badRequest },
               );
             }
           }
@@ -154,11 +164,12 @@ export const routeHandler = <Method extends HttpMethod>({
 
             if (!valid) {
               return NextResponse.json(
-                {
+                openapiFailure({
                   message: DEFAULT_ERRORS.invalidQueryParameters,
-                  errors,
-                },
-                { status: 400 },
+                  error: errors,
+                  statusCode: httpStatus.badRequest,
+                }),
+                { status: httpStatus.badRequest },
               );
             }
 
@@ -175,11 +186,12 @@ export const routeHandler = <Method extends HttpMethod>({
 
             if (!valid) {
               return NextResponse.json(
-                {
+                openapiFailure({
                   message: DEFAULT_ERRORS.invalidPathParameters,
-                  errors,
-                },
-                { status: 400 },
+                  error: errors,
+                  statusCode: httpStatus.badRequest,
+                }),
+                { status: httpStatus.badRequest },
               );
             }
 
@@ -192,8 +204,11 @@ export const routeHandler = <Method extends HttpMethod>({
 
         if (!res) {
           return NextResponse.json(
-            { message: DEFAULT_ERRORS.notImplemented },
-            { status: 501 },
+            openapiFailure({
+              message: DEFAULT_ERRORS.notImplemented,
+              statusCode: httpStatus.notImplemented,
+            }),
+            { status: httpStatus.notImplemented },
           );
         }
 
@@ -202,8 +217,12 @@ export const routeHandler = <Method extends HttpMethod>({
         errorHandler(error);
 
         return NextResponse.json(
-          { message: DEFAULT_ERRORS.unexpectedError },
-          { status: 500 },
+          openapiFailure({
+            message: DEFAULT_ERRORS.internalServerError,
+            error,
+            statusCode: httpStatus.internalServerError,
+          }),
+          { status: httpStatus.internalServerError },
         );
       }
     };
