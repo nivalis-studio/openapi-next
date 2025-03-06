@@ -19,7 +19,8 @@ import type { Options } from 'zod-to-json-schema';
 
 const isSchemaRef = (
   schema: OpenAPI.SchemaObject | OpenAPI.ReferenceObject,
-): schema is OpenAPI.ReferenceObject => '$ref' in schema;
+): schema is OpenAPI.ReferenceObject =>
+  typeof schema === 'object' && '$ref' in schema;
 
 export const getPathsFromRoute = ({
   method: method_,
