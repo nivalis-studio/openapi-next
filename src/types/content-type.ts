@@ -66,4 +66,5 @@ export type AnyContentTypeWithAutocompleteForMostCommonOnes =
     | 'application/vnd.mozilla.xul+xml'
   >;
 
+// eslint-disable-next-line sonarjs/redundant-type-aliases
 export type BaseContentType = AnyContentTypeWithAutocompleteForMostCommonOnes;

@@ -201,7 +201,7 @@ export const getPathsFromRoute = ({
   }
 
   const automaticPathParameters = routeName
-    // eslint-disable-next-line regexp/no-unused-capturing-group
+    // eslint-disable-next-line regexp/no-unused-capturing-group, sonarjs/slow-regex
     .match(/\{([^}]+)\}/g)
     ?.map(param => param.replaceAll(/[{}]/g, ''))
     // Filter out path parameters that have been explicitly defined.

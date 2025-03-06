@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/slow-regex */
 /* eslint-disable max-statements */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable unicorn/no-process-exit */
@@ -70,6 +71,7 @@ export const generateOpenapiSpec = async (
     openApiObject?: OpenApiObject;
     zodToJsonOptions?: Partial<Options<'openApi3'>>;
   },
+  // eslint-disable-next-line sonarjs/cognitive-complexity
 ) => {
   const { openApiObject, zodToJsonOptions } = options ?? {};
 
@@ -88,6 +90,7 @@ export const generateOpenapiSpec = async (
       withFileTypes: true,
     });
 
+    // eslint-disable-next-line sonarjs/function-return-type
     const files = dirents.map(dirent => {
       const res = path.join(dir, dirent.name);
 
@@ -148,7 +151,7 @@ export const generateOpenapiSpec = async (
     const unordered = { ...obj };
 
     return Object.keys(unordered)
-      .sort()
+      .sort((a, b) => a.localeCompare(b))
       .reduce<{ [key: string]: unknown }>((_obj, key) => {
         // eslint-disable-next-line no-param-reassign
         _obj[key] = unordered[key];

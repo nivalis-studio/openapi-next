@@ -61,6 +61,7 @@ export const routeHandler = <Method extends HttpMethod>({
     const reqHandler = async (
       req_: NextRequest,
       context: { params: Promise<BaseParams> },
+      // eslint-disable-next-line sonarjs/cognitive-complexity
     ) => {
       try {
         if (req_.method !== method) {

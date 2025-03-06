@@ -13,6 +13,7 @@ import type { AnyCase, Modify } from './helpers';
 export type BaseOptions = { [key: string]: unknown };
 export type BaseQuery = { [key: string]: string | string[] };
 export type BaseParams = { [key: string]: string };
+// eslint-disable-next-line sonarjs/redundant-type-aliases
 export type BaseStatus = number;
 
 export type InputObject<
