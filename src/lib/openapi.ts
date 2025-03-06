@@ -115,8 +115,6 @@ export const getPathsFromRoute = ({
     500: UNEXPECTED_ERROR_RESPONSE,
   };
 
-  console.log(JSON.stringify({ outputs }, null, 2));
-
   generatedOperationObject.responses = outputs?.reduce(
     (obj, { status, contentType, body, name }) => {
       const occurrenceOfStatusCode = usedStatusCodes.includes(status)
@@ -141,14 +139,6 @@ export const getPathsFromRoute = ({
       const ref = isSchemaRef(schema)
         ? schema.$ref
         : `#/components/schemas/${key}`;
-
-      console.debug(
-        JSON.stringify(
-          { requestBodySchemas, schema, ref, isSchemaRef: isSchemaRef(schema) },
-          null,
-          2,
-        ),
-      );
 
       if (!isSchemaRef(schema)) {
         responseBodySchemas[method] = [
