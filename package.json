@@ -73,7 +73,7 @@
     "rollup": {
       "esbuild": {
         "target": "node22",
-        "minify": true
+        "minify": false
       }
     },
     "declaration": true,
