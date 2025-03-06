@@ -275,18 +275,5 @@ export const getPathsFromRoute = ({
     ...responseBodySchemaMapping,
   };
 
-  console.debug(
-    JSON.stringify(
-      {
-        requestBodySchemas,
-        requestBodySchemaMapping,
-        responseBodySchemas,
-        responseBodySchemaMapping,
-      },
-      null,
-      2,
-    ),
-  );
-
   return { paths, schemas };
 };

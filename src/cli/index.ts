@@ -138,7 +138,11 @@ export const generateOpenapiSpec = async (
           )
         ) {
           console.error(error);
+
+          continue;
         }
+
+        console.warn(error);
 
         continue;
       }
@@ -174,6 +178,8 @@ export const generateOpenapiSpec = async (
     components,
     openApiObject as OpenAPI.Document,
   );
+
+  console.debug(JSON.stringify({ components }, null, 2));
 
   const openApiFilePath = path.join(process.cwd(), 'public', 'openapi.json');
 
