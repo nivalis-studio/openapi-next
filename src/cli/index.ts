@@ -126,6 +126,8 @@ export const generateOpenapiSpec = async (
           zodToJsonOptions,
         );
 
+        console.debug(JSON.stringify({ data_schemas: data.schemas }, null, 2));
+
         if (isNrfOasData(data)) {
           paths = { ...paths, ...data.paths };
           schemas = { ...schemas, ...data.schemas };
@@ -179,7 +181,9 @@ export const generateOpenapiSpec = async (
     openApiObject as OpenAPI.Document,
   );
 
-  console.debug(JSON.stringify({ components }, null, 2));
+  console.debug(
+    JSON.stringify({ schemas: components.components?.schemas }, null, 2),
+  );
 
   const openApiFilePath = path.join(process.cwd(), 'public', 'openapi.json');
 
