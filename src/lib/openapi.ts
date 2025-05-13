@@ -14,7 +14,7 @@ import type {
 } from '../types/open-api';
 import type { RouteOperationDefinition } from '../types/operation';
 import type { HttpMethod } from './http';
-import type { ZodObject, ZodRawShape, ZodSchema } from 'zod';
+import type { ZodObject, ZodRawShape, z } from 'zod';
 import type { Options } from 'zod-to-json-schema';
 
 const isSchemaRef = (
@@ -102,7 +102,7 @@ export const getPathsFromRoute = ({
       },
     };
 
-    const description = input.body._def.description;
+    const description = input.body.description;
 
     if (description) {
       generatedOperationObject.requestBody.description = description;
@@ -151,8 +151,7 @@ export const getPathsFromRoute = ({
         ];
       }
 
-      const description =
-        body._def.description ?? `Response for status ${status}`;
+      const description = body.description ?? `Response for status ${status}`;
 
       return Object.assign(obj, {
         [status]: {
@@ -183,7 +182,7 @@ export const getPathsFromRoute = ({
     pathParameters = Object.entries(schema).map(([name, schema_]) => {
       const schema__ = (input.params as ZodObject<ZodRawShape>).shape[
         name
-      ] as ZodSchema;
+      ] as z.ZodType;
 
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return {
@@ -233,7 +232,7 @@ export const getPathsFromRoute = ({
       ...Object.entries(schema).map(([name, schema_]) => {
         const schema__ = (input.query as ZodObject<ZodRawShape>).shape[
           name
-        ] as ZodSchema;
+        ] as z.ZodType;
 
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return {

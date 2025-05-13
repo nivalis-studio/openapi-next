@@ -1,6 +1,7 @@
 import { httpStatus } from '@nivalis/std/http-status';
 import { z } from 'zod';
-import type { ZodObject, objectUtil, util } from 'zod';
+import type { ZodObject } from 'zod';
+import type { util } from '@zod/core';
 import type { HttpStatusError, HttpStatusOk } from '@nivalis/std/http-status';
 
 export type OpenapiSuccess<
@@ -70,14 +71,14 @@ export const openapiFailure = <
 
 export const openapiFailureSchema = z.object({
   success: z.literal(false),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   statusCode: z.number(),
   message: z.string(),
 });
 
 export const openapiSuccessSchema = z.object({
   success: z.literal(true),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
 });
 
 export const getOpenapiOutputs = <
@@ -92,7 +93,7 @@ export const getOpenapiOutputs = <
     contentType: 'application/json';
     status: typeof httpStatus.ok;
     body: ZodObject<
-      util.flatten<
+      util.Flatten<
         objectUtil.extendShape<
           T['shape'],
           (typeof openapiSuccessSchema)['shape']
@@ -109,7 +110,10 @@ export const getOpenapiOutputs = <
   {
     contentType: 'application/json',
     status: httpStatus.ok,
-    body: openapiSuccessSchema.merge(outputSchema),
+    body: z.object({
+      ...openapiSuccessSchema.shape,
+      ...outputSchema.shape,
+    }),
   },
   ...errors.map(status => ({
     contentType: 'application/json' as const,
