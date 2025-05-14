@@ -1,16 +1,16 @@
 import zodToJsonSchema from 'zod-to-json-schema';
 import type { Options } from 'zod-to-json-schema';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
-import type { ZodSchema } from 'zod';
+import type { z } from 'zod';
 
-const isZodSchema = (schema: unknown): schema is ZodSchema =>
+const isZodSchema = (schema: unknown): schema is z.ZodType =>
   !!schema && typeof schema === 'object' && '_def' in schema;
 
 const zodSchemaValidator = ({
   schema,
   obj,
 }: {
-  schema: ZodSchema;
+  schema: z.ZodType;
   obj: unknown;
 }) => {
   const data = schema.safeParse(obj);
@@ -19,7 +19,7 @@ const zodSchemaValidator = ({
   return {
     valid: data.success,
     errors,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
     data: data.success ? data.data : null,
   };
 };
@@ -28,7 +28,7 @@ export const validateSchema = ({
   schema,
   obj,
 }: {
-  schema: ZodSchema;
+  schema: z.ZodType;
   obj: unknown;
 }) => {
   if (isZodSchema(schema)) {
@@ -46,7 +46,7 @@ export const getJsonSchema = ({
   type,
   zodToJsonOptions,
 }: {
-  schema: ZodSchema;
+  schema: z.ZodType;
   operationId: string;
   type: SchemaType;
   zodToJsonOptions?: Partial<Options<'openApi3'>>;

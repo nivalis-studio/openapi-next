@@ -125,7 +125,6 @@ export const routeHandler = <Method extends HttpMethod>({
             try {
               const json = await reqClone.json();
 
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const { valid, errors, data } = validateSchema({
                 schema: bodySchema,
                 obj: json,
@@ -155,7 +154,6 @@ export const routeHandler = <Method extends HttpMethod>({
           }
 
           if (querySchema) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { valid, errors, data } = validateSchema({
               schema: querySchema,
               obj: qs.parse(reqClone.nextUrl.search, {
@@ -174,12 +172,10 @@ export const routeHandler = <Method extends HttpMethod>({
               );
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             actionContext.query = data;
           }
 
           if (paramsSchema) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { valid, errors, data } = validateSchema({
               schema: paramsSchema,
               obj: await context.params,
@@ -196,7 +192,6 @@ export const routeHandler = <Method extends HttpMethod>({
               );
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             actionContext.params = data;
           }
         }
