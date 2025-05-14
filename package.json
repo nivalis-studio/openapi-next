@@ -63,8 +63,7 @@
     "unbuild": "3.5.0"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0",
-    "zod-to-json-schema": "3.24.5"
+    "typescript": "^5.0.0"
   },
   "lint-staged": {
     "*": "eslint --quiet --fix"

@@ -11,12 +11,12 @@ import { format } from 'prettier';
 import { isValidMethod } from '../utils/is-valid-method';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type { NrfOasData, OpenApiObject } from '../types/open-api';
-import type { Options } from 'zod-to-json-schema';
+import type { ToJsonOptions } from '../lib/zod';
 
 type RequestHandler = {
   _generateOpenApi: (
     routeName: string,
-    zodToJsonOptions?: Partial<Options<'openApi3'>>,
+    zodToJsonOptions?: ToJsonOptions,
   ) => NrfOasData;
 };
 
@@ -69,7 +69,7 @@ export const generateOpenapiSpec = async (
   },
   options?: {
     openApiObject?: OpenApiObject;
-    zodToJsonOptions?: Partial<Options<'openApi3'>>;
+    zodToJsonOptions?: ToJsonOptions;
   },
   // eslint-disable-next-line sonarjs/cognitive-complexity
 ) => {
