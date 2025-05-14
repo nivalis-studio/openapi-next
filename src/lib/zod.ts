@@ -57,11 +57,10 @@ export const getJsonSchema = ({
         ...zodToJsonOptions,
         target: 'draft-2020-12',
       }) as OpenAPI.SchemaObject;
-    } catch {
+    } catch (error) {
       console.warn(
-        `
-Warning: ${type} schema for operation ${operationId} could not be converted to a JSON schema. The OpenAPI spec may not be accurate.
-This is most likely related to an issue with the \`zod-to-json-schema\`: https://github.com/StefanTerdell/zod-to-json-schema?tab=readme-ov-file#known-issues`,
+        error,
+        `\nWarning: ${type} schema for operation ${operationId} could not be converted to a JSON schema. The OpenAPI spec may not be accurate.`,
       );
 
       return {};
