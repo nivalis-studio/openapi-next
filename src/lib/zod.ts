@@ -1,7 +1,5 @@
-import zodToJsonSchema from 'zod-to-json-schema';
-import type { Options } from 'zod-to-json-schema';
+import { z } from 'zod';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
-import type { z } from 'zod';
 
 const isZodSchema = (schema: unknown): schema is z.ZodType =>
   !!schema && typeof schema === 'object' && '_def' in schema;
@@ -40,6 +38,8 @@ export const validateSchema = ({
 
 type SchemaType = 'input-params' | 'input-query' | 'input-body' | 'output-body';
 
+export type ToJsonOptions = Parameters<typeof z.toJSONSchema>[1];
+
 export const getJsonSchema = ({
   schema,
   operationId,
@@ -49,15 +49,14 @@ export const getJsonSchema = ({
   schema: z.ZodType;
   operationId: string;
   type: SchemaType;
-  zodToJsonOptions?: Partial<Options<'openApi3'>>;
+  zodToJsonOptions?: ToJsonOptions;
 }): OpenAPI.SchemaObject => {
   if (isZodSchema(schema)) {
     try {
-      return zodToJsonSchema(schema, {
-        $refStrategy: 'none',
+      return z.toJSONSchema(schema, {
         ...zodToJsonOptions,
-        target: 'openApi3',
-      });
+        target: 'draft-2020-12',
+      }) as OpenAPI.SchemaObject;
     } catch {
       console.warn(
         `

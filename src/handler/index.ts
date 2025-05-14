@@ -8,6 +8,7 @@ import { validateSchema } from '../lib/zod';
 import { getPathsFromRoute } from '../lib/openapi';
 import { parseContentType } from '../lib/content-type';
 import { openapiFailure } from '../lib/response';
+import type { ToJsonOptions } from '../lib/zod';
 import type { HttpMethod } from '../lib/http';
 import type { OpenApiOperation, OpenApiPathItem } from '../types/open-api';
 import type { BaseContentType } from '../types/content-type';
@@ -21,7 +22,6 @@ import type {
   OutputObject,
   TypedRouteAction,
 } from '../types/operation';
-import type { Options } from 'zod-to-json-schema';
 
 type RouteHandlerOptions<Method extends HttpMethod> = {
   method: Method;
@@ -225,7 +225,7 @@ export const routeHandler = <Method extends HttpMethod>({
 
     reqHandler._generateOpenApi = (
       routeName: string,
-      zodToJsonOptions?: Partial<Options<'openApi3'>>,
+      zodToJsonOptions?: ToJsonOptions,
     ) =>
       getPathsFromRoute({
         method,

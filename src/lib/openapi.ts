@@ -6,6 +6,7 @@ import {
   ERROR_MESSAGE_SCHEMA,
   UNEXPECTED_ERROR_RESPONSE,
 } from './openapi-errors';
+import type { ToJsonOptions } from './zod';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 import type {
   NrfOasData,
@@ -15,7 +16,6 @@ import type {
 import type { RouteOperationDefinition } from '../types/operation';
 import type { HttpMethod } from './http';
 import type { ZodObject, ZodRawShape, z } from 'zod';
-import type { Options } from 'zod-to-json-schema';
 
 const isSchemaRef = (
   schema: OpenAPI.SchemaObject | OpenAPI.ReferenceObject,
@@ -37,7 +37,7 @@ export const getPathsFromRoute = ({
   routeName: string;
   openApiPath?: OpenApiPathItem;
   openApiOperation?: OpenApiOperation;
-  zodToJsonOptions?: Partial<Options<'openApi3'>>;
+  zodToJsonOptions?: ToJsonOptions;
 }): NrfOasData => {
   const paths: OpenAPI.PathsObject = {};
   const method = method_.toLowerCase();
