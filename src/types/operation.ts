@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { ZodSchema, z } from 'zod';
+import type { ZodType, z } from 'zod';
 import type {
   AnyContentTypeWithAutocompleteForMostCommonOnes,
   BaseContentType,
@@ -23,9 +23,9 @@ export type InputObject<
   Params = BaseParams,
 > = {
   contentType?: ContentType;
-  body?: ZodSchema<Body>;
-  query?: ZodSchema<Query>;
-  params?: ZodSchema<Params>;
+  body?: ZodType<Body>;
+  query?: ZodType<Query>;
+  params?: ZodType<Params>;
 };
 
 export type OutputObject<
@@ -34,7 +34,7 @@ export type OutputObject<
   ContentType extends
     AnyContentTypeWithAutocompleteForMostCommonOnes = AnyContentTypeWithAutocompleteForMostCommonOnes,
 > = {
-  body: ZodSchema<Body>;
+  body: ZodType<Body>;
   status: Status;
   contentType: ContentType;
   name?: string /*! A custom name for the response, used for the generated component name in the OpenAPI spec. */;
