@@ -1,8 +1,7 @@
 import { httpStatus } from '@nivalis/std/http-status';
 import { z } from 'zod';
-import type { ZodObject } from 'zod';
-import type { util } from '@zod/core';
 import type { HttpStatusError, HttpStatusOk } from '@nivalis/std/http-status';
+import type { $ZodType } from '@zod/core';
 
 export type OpenapiSuccess<
   ValueObj,
@@ -81,6 +80,21 @@ export const openapiSuccessSchema = z.object({
   timestamp: z.iso.datetime(),
 });
 
+const getOpenApiSuccessOutput = <
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends z.ZodObject<any, any, any>,
+>(
+  outputSchema: T,
+) => openapiSuccessSchema.extend(outputSchema.shape as T['shape']);
+
+type MergedSuccessOutput<
+  T extends z.ZodObject<
+    Readonly<{ [k: string]: $ZodType }>,
+    { [key: string]: unknown },
+    { [key: string]: unknown }
+  >,
+> = ReturnType<typeof getOpenApiSuccessOutput<T>>;
+
 export const getOpenapiOutputs = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   T extends z.ZodObject<any, any, any>,
@@ -92,14 +106,7 @@ export const getOpenapiOutputs = <
   {
     contentType: 'application/json';
     status: typeof httpStatus.ok;
-    body: ZodObject<
-      util.Flatten<
-        objectUtil.extendShape<
-          T['shape'],
-          (typeof openapiSuccessSchema)['shape']
-        >
-      >
-    >;
+    body: MergedSuccessOutput<T>;
   },
   ...Array<{
     contentType: 'application/json';
@@ -110,10 +117,7 @@ export const getOpenapiOutputs = <
   {
     contentType: 'application/json',
     status: httpStatus.ok,
-    body: z.object({
-      ...openapiSuccessSchema.shape,
-      ...outputSchema.shape,
-    }),
+    body: getOpenApiSuccessOutput(outputSchema),
   },
   ...errors.map(status => ({
     contentType: 'application/json' as const,
