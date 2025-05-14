@@ -58,7 +58,8 @@ const isNrfOasData = (x: unknown): x is NrfOasData => {
  * @param {string} info.version - The version of the API
  * @param {object} options - Additional configuration options for OpenAPI generation
  * @param {object} options.openApiObject - An OpenAPI Object that can be used to override and extend the auto-generated specification
- * @param {object} options.zodToJsonOptions - Options to pass to the `zod-to-json-schema` library
+ * @param {object} options.zodToJsonOptions - Options to pass to the zod
+ * `zodToJsonSchema`
  * @returns {Promise<object>} The generated OpenAPI specification
  */
 export const generateOpenapiSpec = async (
