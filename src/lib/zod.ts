@@ -4,11 +4,11 @@ import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 const isZodSchema = (schema: unknown): schema is z.ZodType =>
   !!schema && typeof schema === 'object' && '_def' in schema;
 
-const zodSchemaValidator = ({
+const zodSchemaValidator = <Output, Schema extends z.ZodType<Output>>({
   schema,
   obj,
 }: {
-  schema: z.ZodType;
+  schema: Schema;
   obj: unknown;
 }) => {
   const data = schema.safeParse(obj);
@@ -22,11 +22,11 @@ const zodSchemaValidator = ({
   };
 };
 
-export const validateSchema = ({
+export const validateSchema = <Output, Schema extends z.ZodType<Output>>({
   schema,
   obj,
 }: {
-  schema: z.ZodType;
+  schema: Schema;
   obj: unknown;
 }) => {
   if (isZodSchema(schema)) {
