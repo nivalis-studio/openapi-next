@@ -8,6 +8,8 @@ import { validateSchema } from '../lib/zod';
 import { getPathsFromRoute } from '../lib/openapi';
 import { parseContentType } from '../lib/content-type';
 import { openapiFailure } from '../lib/response';
+import type z from 'zod';
+import type { ZodType } from 'zod';
 import type { ToJsonOptions } from '../lib/zod';
 import type { HttpMethod } from '../lib/http';
 import type { OpenApiOperation, OpenApiPathItem } from '../types/open-api';
@@ -30,6 +32,8 @@ type RouteHandlerOptions<Method extends HttpMethod> = {
   openApiPath?: OpenApiPathItem;
   openApiOperation?: OpenApiOperation;
 };
+
+type InferZod<T> = T extends ZodType ? z.infer<T> : never;
 
 const DEFAULT_ERROR_HANDLER = (error: unknown) => {
   console.error(error);
@@ -272,43 +276,45 @@ export const routeHandler = <Method extends HttpMethod>({
       ) => createActionOperation({ outputs, action }),
     }),
 
-    input: <
-      ContentType extends BaseContentType,
-      Body,
-      Query extends BaseQuery,
-      Params extends BaseParams,
-    >(
-      input: InputObject<ContentType, Body, Query, Params>,
-    ) => ({
-      action: (
-        action: TypedRouteAction<Method, ContentType, Body, Query, Params>,
-      ) => createActionOperation({ input, action }),
+    input<I extends InputObject>(input: I) {
+      type Body = InferZod<I['body']>;
+      type Query = InferZod<I['query']>;
+      type Params = InferZod<I['params']>;
+      type ContentType = I['contentType'] extends BaseContentType
+        ? I['contentType']
+        : BaseContentType;
 
-      outputs: <
-        ResponseBody extends BaseOptions,
-        Status extends BaseStatus,
-        ResponseContentType extends BaseContentType,
-        Outputs extends ReadonlyArray<
-          OutputObject<ResponseBody, Status, ResponseContentType>
-        >,
-      >(
-        outputs: Outputs,
-      ) => ({
+      return {
         action: (
-          action: TypedRouteAction<
-            Method,
-            ContentType,
-            Body,
-            Query,
-            Params,
-            BaseOptions,
-            ResponseBody,
-            Status,
-            ResponseContentType,
-            Outputs
+          handler: TypedRouteAction<Method, ContentType, Body, Query, Params>,
+        ) => createActionOperation({ input, action: handler }),
+
+        outputs: <
+          ResponseBody extends BaseOptions,
+          Status extends BaseStatus,
+          ResponseContentType extends BaseContentType,
+          Outputs extends ReadonlyArray<
+            OutputObject<ResponseBody, Status, ResponseContentType>
           >,
-        ) => createActionOperation({ input, outputs, action }),
-      }),
-    }),
+        >(
+          outputs: Outputs,
+        ) => ({
+          action: (
+            action: TypedRouteAction<
+              Method,
+              ContentType,
+              Body,
+              Query,
+              Params,
+              BaseOptions,
+              ResponseBody,
+              Status,
+              ResponseContentType,
+              Outputs
+            >,
+          ) => createActionOperation({ input, outputs, action }),
+        }),
+      };
+    },
   };
 };

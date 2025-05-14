@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { ResponseCookies } from 'next/dist/compiled/@edge-runtime/cookies';
 import type { ZodType, z } from 'zod';
 import type {
   AnyContentTypeWithAutocompleteForMostCommonOnes,
@@ -7,7 +8,6 @@ import type {
 import type { NextURL } from 'next/dist/server/web/next-url';
 import type { NextRequest } from 'next/server';
 import type { HttpMethod } from '../lib/http';
-import type { ResponseCookies } from 'next/dist/compiled/@edge-runtime/cookies';
 import type { AnyCase, Modify } from './helpers';
 
 export type BaseOptions = { [key: string]: unknown };
