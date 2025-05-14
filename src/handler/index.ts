@@ -9,7 +9,6 @@ import { getPathsFromRoute } from '../lib/openapi';
 import { parseContentType } from '../lib/content-type';
 import { openapiFailure } from '../lib/response';
 import type z from 'zod';
-import type { ZodType } from 'zod';
 import type { ToJsonOptions } from '../lib/zod';
 import type { HttpMethod } from '../lib/http';
 import type { OpenApiOperation, OpenApiPathItem } from '../types/open-api';
@@ -32,8 +31,6 @@ type RouteHandlerOptions<Method extends HttpMethod> = {
   openApiPath?: OpenApiPathItem;
   openApiOperation?: OpenApiOperation;
 };
-
-type InferZod<T> = T extends ZodType ? z.infer<T> : never;
 
 const DEFAULT_ERROR_HANDLER = (error: unknown) => {
   console.error(error);
@@ -277,9 +274,9 @@ export const routeHandler = <Method extends HttpMethod>({
     }),
 
     input<I extends InputObject>(input: I) {
-      type Body = InferZod<I['body']>;
-      type Query = InferZod<I['query']>;
-      type Params = InferZod<I['params']>;
+      type Body = z.infer<NonNullable<I['body']>>;
+      type Query = z.infer<NonNullable<I['query']>>;
+      type Params = z.infer<NonNullable<I['params']>>;
       type ContentType = I['contentType'] extends BaseContentType
         ? I['contentType']
         : BaseContentType;
