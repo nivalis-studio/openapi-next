@@ -207,7 +207,7 @@ export type TypedRouteAction<
   // eslint-disable-next-line style/type-generic-spacing
   TypedResponse =
     | TypedNextResponseType<
-        z.infer<Outputs[number]['body']>,
+        z.input<Outputs[number]['body']>,
         Outputs[number]['status'],
         Outputs[number]['contentType']
       >
