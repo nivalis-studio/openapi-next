@@ -5,12 +5,12 @@
  */
 
 type NullObjectType = {
-  [key: string]: string;
+	[key: string]: string;
 };
 
 const createNullObject = (): NullObjectType => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return Object.create(null);
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+	return Object.create(null);
 };
 
 /**
@@ -28,7 +28,7 @@ const createNullObject = (): NullObjectType => {
  * quoted-pair   = "\" ( HTAB / SP / VCHAR / obs-text )
  */
 const paramRE =
-  /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005B\u005D-\u007E\u0080-\u00FF]|\\[\v\u0020-\u00FF])*"|[!#$%&'*+.^\w`|~-]+) */gu;
+	/; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005B\u005D-\u007E\u0080-\u00FF]|\\[\v\u0020-\u00FF])*"|[!#$%&'*+.^\w`|~-]+) */gu;
 
 /**
  * RegExp to match quoted-pair in RFC 7230 sec 3.2.6
@@ -48,13 +48,13 @@ const quotedPairRE = /\\([\v\u0020-\u00FF])/gu;
 const mediaTypeRE = /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/u;
 
 type ContentType = {
-  type: string;
-  parameters: NullObjectType;
+	type: string;
+	parameters: NullObjectType;
 };
 
 const defaultContentType: ContentType = {
-  type: '',
-  parameters: createNullObject(),
+	type: "",
+	parameters: createNullObject(),
 };
 
 Object.freeze(defaultContentType.parameters);
@@ -67,64 +67,64 @@ Object.freeze(defaultContentType);
  * @public
  */
 export const parseContentType = (
-  header: string | undefined | null,
+	header: string | undefined | null,
 ): ContentType => {
-  if (!header || typeof header !== 'string') {
-    return defaultContentType;
-  }
+	if (!header || typeof header !== "string") {
+		return defaultContentType;
+	}
 
-  let index = header.indexOf(';');
-  const type = index === -1 ? header.trim() : header.slice(0, index).trim();
+	let index = header.indexOf(";");
+	const type = index === -1 ? header.trim() : header.slice(0, index).trim();
 
-  if (!mediaTypeRE.test(type)) {
-    return defaultContentType;
-  }
+	if (!mediaTypeRE.test(type)) {
+		return defaultContentType;
+	}
 
-  const result: ContentType = {
-    type: type.toLowerCase(),
-    parameters: createNullObject(),
-  };
+	const result: ContentType = {
+		type: type.toLowerCase(),
+		parameters: createNullObject(),
+	};
 
-  // parse parameters
-  if (index === -1) {
-    return result;
-  }
+	// parse parameters
+	if (index === -1) {
+		return result;
+	}
 
-  let key: string;
-  let value: string;
+	let key: string;
+	let value: string;
 
-  paramRE.lastIndex = index;
+	paramRE.lastIndex = index;
 
-  let match: RegExpExecArray | null;
+	let match: RegExpExecArray | null;
 
-  while (true) {
-    match = paramRE.exec(header);
+	while (true) {
+		match = paramRE.exec(header);
 
-    if (match === null) break;
+		if (match === null) break;
 
-    if (match.index !== index) {
-      return defaultContentType;
-    }
+		if (match.index !== index) {
+			return defaultContentType;
+		}
 
-    index += match[0].length;
-    key = match[1].toLowerCase();
-    value = match[2];
+		index += match[0].length;
+		key = match[1].toLowerCase();
+		value = match[2];
 
-    if (value.startsWith('"')) {
-      // remove quotes and escapes
-      value = value.slice(1, -1);
+		if (value.startsWith('"')) {
+			// remove quotes and escapes
+			value = value.slice(1, -1);
 
-      if (quotedPairRE.test(value)) {
-        value = value.replaceAll(quotedPairRE, '$1');
-      }
-    }
+			if (quotedPairRE.test(value)) {
+				value = value.replaceAll(quotedPairRE, "$1");
+			}
+		}
 
-    result.parameters[key] = value;
-  }
+		result.parameters[key] = value;
+	}
 
-  if (index !== header.length) {
-    return defaultContentType;
-  }
+	if (index !== header.length) {
+		return defaultContentType;
+	}
 
-  return result;
+	return result;
 };
