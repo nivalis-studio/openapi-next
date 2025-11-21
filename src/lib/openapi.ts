@@ -1,278 +1,329 @@
 /* eslint-disable max-statements */
-import { merge } from "es-toolkit/compat";
-import type { OpenAPIV3_1 as OpenAPI } from "openapi-types";
-import type { ZodObject, ZodRawShape, z } from "zod";
-import type {
-	NrfOasData,
-	OpenApiOperation,
-	OpenApiPathItem,
-} from "../types/open-api";
-import type { RouteOperationDefinition } from "../types/operation";
-import { capitalizeFirstLetter } from "../utils/capitalize";
-import type { HttpMethod } from "./http";
+import { merge } from 'es-toolkit/compat';
+import { capitalizeFirstLetter } from '../utils/capitalize';
 import {
-	ERROR_MESSAGE_SCHEMA,
-	UNEXPECTED_ERROR_RESPONSE,
-} from "./openapi-errors";
-import type { ToJsonOptions } from "./zod";
-import { getJsonSchema } from "./zod";
+  ERROR_MESSAGE_SCHEMA,
+  UNEXPECTED_ERROR_RESPONSE,
+} from './openapi-errors';
+import { getJsonSchema } from './zod';
+import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
+import type { ZodObject, ZodRawShape, z } from 'zod';
+import type {
+  NrfOasData,
+  OpenApiOperation,
+  OpenApiPathItem,
+} from '../types/open-api';
+import type { RouteOperationDefinition } from '../types/operation';
+import type { HttpMethod } from './http';
+import type { ToJsonOptions } from './zod';
 
 const isSchemaRef = (
-	schema: OpenAPI.SchemaObject | OpenAPI.ReferenceObject,
+  schema: OpenAPI.SchemaObject | OpenAPI.ReferenceObject,
 ): schema is OpenAPI.ReferenceObject =>
-	typeof schema === "object" && "$ref" in schema;
+  typeof schema === 'object' && '$ref' in schema;
+
+type RequestBodySchema = {
+  key: string;
+  ref: string;
+  schema: OpenAPI.SchemaObject;
+};
+
+type RequestBodySchemaMap = {
+  [key: string]: RequestBodySchema;
+};
+
+type ResponseBodySchemaMap = {
+  [key: string]: Array<RequestBodySchema>;
+};
+
+const buildRequestBody = ({
+  input,
+  operationId,
+  zodToJsonOptions,
+}: {
+  input?: RouteOperationDefinition['input'];
+  method: string;
+  operationId: string;
+  zodToJsonOptions?: ToJsonOptions;
+}): {
+  requestBody?: OpenAPI.RequestBodyObject;
+  requestBodySchemas: RequestBodySchemaMap;
+} => {
+  const requestBodySchemas: RequestBodySchemaMap = {};
+
+  if (!(input?.body && input?.contentType)) {
+    return { requestBodySchemas };
+  }
+
+  const key = `${capitalizeFirstLetter(operationId)}RequestBody`;
+
+  const schema = getJsonSchema({
+    schema: input.body,
+    operationId,
+    type: 'input-body',
+    zodToJsonOptions,
+  });
+
+  const ref = isSchemaRef(schema) ? schema.$ref : `#/components/schemas/${key}`;
+
+  if (!isSchemaRef(schema)) {
+    requestBodySchemas[key] = {
+      key,
+      ref,
+      schema,
+    };
+  }
+
+  const requestBody: OpenAPI.RequestBodyObject = {
+    content: {
+      [input.contentType]: {
+        schema: {
+          $ref: ref,
+        },
+      },
+    },
+  };
+
+  const description = input.body.description;
+
+  if (description) {
+    requestBody.description = description;
+  }
+
+  return { requestBody, requestBodySchemas };
+};
+
+const buildResponses = ({
+  outputs,
+  method,
+  operationId,
+  zodToJsonOptions,
+}: {
+  outputs?: RouteOperationDefinition['outputs'];
+  method: string;
+  operationId: string;
+  zodToJsonOptions?: ToJsonOptions;
+}): {
+  responses: OpenAPI.ResponsesObject;
+  responseBodySchemas: ResponseBodySchemaMap;
+} => {
+  const responseBodySchemas: ResponseBodySchemaMap = {};
+  const usedStatusCodes: Array<number> = [];
+  const baseOperationResponses: OpenAPI.ResponsesObject = {
+    500: UNEXPECTED_ERROR_RESPONSE,
+  };
+
+  const responses =
+    outputs?.reduce((obj, { status, contentType, body, name }) => {
+      const occurrenceOfStatusCode = usedStatusCodes.includes(status)
+        ? usedStatusCodes.filter(sts => sts === status).length + 1
+        : '';
+
+      const key =
+        name ??
+        `${capitalizeFirstLetter(
+          operationId,
+        )}${status}ResponseBody${occurrenceOfStatusCode}`;
+
+      usedStatusCodes.push(status);
+
+      const schema = getJsonSchema({
+        schema: body,
+        operationId,
+        type: 'output-body',
+        zodToJsonOptions,
+      });
+
+      const ref = isSchemaRef(schema)
+        ? schema.$ref
+        : `#/components/schemas/${key}`;
+
+      if (!isSchemaRef(schema)) {
+        responseBodySchemas[method] = [
+          ...(responseBodySchemas[method] ?? []),
+          {
+            key,
+            ref,
+            schema,
+          },
+        ];
+      }
+
+      const description = body.description ?? `Response for status ${status}`;
+
+      obj[status] = {
+        description,
+        content: {
+          [contentType]: {
+            schema: {
+              $ref: ref,
+            },
+          },
+        },
+      };
+
+      return obj;
+    }, baseOperationResponses) ?? baseOperationResponses;
+
+  return { responses, responseBodySchemas };
+};
 
 export const getPathsFromRoute = ({
-	method: method_,
-	operationId,
-	operation,
-	routeName,
-	openApiPath,
-	openApiOperation,
-	zodToJsonOptions,
+  method: method_,
+  operationId,
+  operation,
+  routeName,
+  openApiPath,
+  openApiOperation,
+  zodToJsonOptions,
 }: {
-	method: HttpMethod;
-	operationId: string;
-	operation: RouteOperationDefinition;
-	routeName: string;
-	openApiPath?: OpenApiPathItem;
-	openApiOperation?: OpenApiOperation;
-	zodToJsonOptions?: ToJsonOptions;
+  method: HttpMethod;
+  operationId: string;
+  operation: RouteOperationDefinition;
+  routeName: string;
+  openApiPath?: OpenApiPathItem;
+  openApiOperation?: OpenApiOperation;
+  zodToJsonOptions?: ToJsonOptions;
 }): NrfOasData => {
-	const paths: OpenAPI.PathsObject = {};
-	const method = method_.toLowerCase();
+  const paths: OpenAPI.PathsObject = {};
+  const method = method_.toLowerCase();
 
-	const requestBodySchemas: {
-		[key: string]: {
-			key: string;
-			ref: string;
-			schema: OpenAPI.SchemaObject;
-		};
-	} = {};
+  const baseResponseBodySchemaMapping: {
+    [key: string]: OpenAPI.SchemaObject;
+  } = {
+    ErrorMessage: ERROR_MESSAGE_SCHEMA,
+  };
 
-	const responseBodySchemas: {
-		[key: string]: Array<{
-			key: string;
-			ref: string;
-			schema: OpenAPI.SchemaObject;
-		}>;
-	} = {};
+  const generatedOperationObject: OpenAPI.OperationObject = {
+    operationId,
+  };
 
-	const baseResponseBodySchemaMapping: {
-		[key: string]: OpenAPI.SchemaObject;
-	} = {
-		ErrorMessage: ERROR_MESSAGE_SCHEMA,
-	};
+  const { input, outputs } = operation;
 
-	const generatedOperationObject: OpenAPI.OperationObject = {
-		operationId,
-	};
+  const { requestBody, requestBodySchemas } = buildRequestBody({
+    input,
+    method,
+    operationId,
+    zodToJsonOptions,
+  });
 
-	const { input, outputs } = operation;
+  if (requestBody) {
+    generatedOperationObject.requestBody = requestBody;
+  }
 
-	if (input?.body && input?.contentType) {
-		const key = `${capitalizeFirstLetter(operationId)}RequestBody`;
+  const { responses, responseBodySchemas } = buildResponses({
+    outputs,
+    method,
+    operationId,
+    zodToJsonOptions,
+  });
 
-		const schema = getJsonSchema({
-			schema: input.body,
-			operationId,
-			type: "input-body",
-			zodToJsonOptions,
-		});
+  generatedOperationObject.responses = responses;
 
-		const ref = isSchemaRef(schema)
-			? schema.$ref
-			: `#/components/schemas/${key}`;
+  let pathParameters: Array<OpenAPI.ParameterObject> = [];
 
-		if (!isSchemaRef(schema)) {
-			requestBodySchemas[method] = {
-				key,
-				ref,
-				schema,
-			};
-		}
+  if (input?.params) {
+    const schema =
+      getJsonSchema({
+        schema: input.params,
+        operationId,
+        type: 'input-params',
+      }).properties ?? {};
 
-		generatedOperationObject.requestBody = {
-			content: {
-				[input.contentType]: {
-					schema: {
-						$ref: ref,
-					},
-				},
-			},
-		};
+    pathParameters = Object.entries(schema).map(([name, schema_]) => {
+      const schema__ = (input.params as ZodObject<ZodRawShape>).shape[
+        name
+      ] as z.ZodType;
 
-		const description = input.body.description;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return {
+        name,
+        in: 'path',
+        required: !schema__.isOptional(),
 
-		if (description) {
-			generatedOperationObject.requestBody.description = description;
-		}
-	}
+        schema: schema_,
+      } as OpenAPI.ParameterObject;
+    });
 
-	const usedStatusCodes: number[] = [];
+    generatedOperationObject.parameters = [
+      ...(generatedOperationObject.parameters ?? []),
+      ...pathParameters,
+    ];
+  }
 
-	const baseOperationResponses: OpenAPI.ResponsesObject = {
-		500: UNEXPECTED_ERROR_RESPONSE,
-	};
+  const automaticPathParameters = routeName
+    // eslint-disable-next-line regexp/no-unused-capturing-group, sonarjs/slow-regex
+    .match(/\{([^}]+)\}/g)
+    ?.map(param => param.replace(/[{}]/g, ''))
+    // Filter out path parameters that have been explicitly defined.
+    .filter(_name => !pathParameters?.some(({ name }) => name === _name));
 
-	generatedOperationObject.responses = outputs?.reduce(
-		(obj, { status, contentType, body, name }) => {
-			const occurrenceOfStatusCode = usedStatusCodes.includes(status)
-				? usedStatusCodes.filter((sts) => sts === status).length + 1
-				: "";
+  if (automaticPathParameters?.length) {
+    generatedOperationObject.parameters = [
+      ...(generatedOperationObject.parameters ?? []),
+      ...(automaticPathParameters.map(name => ({
+        name,
+        in: 'path',
+        required: true,
+        schema: { type: 'string' },
+      })) as Array<OpenAPI.ParameterObject>),
+    ];
+  }
 
-			const key =
-				name ??
-				`${capitalizeFirstLetter(
-					operationId,
-				)}${status}ResponseBody${occurrenceOfStatusCode}`;
+  if (input?.query) {
+    const schema =
+      getJsonSchema({
+        schema: input.query,
+        operationId,
+        type: 'input-query',
+      }).properties ?? {};
 
-			usedStatusCodes.push(status);
+    generatedOperationObject.parameters = [
+      ...(generatedOperationObject.parameters ?? []),
+      ...Object.entries(schema).map(([name, schema_]) => {
+        const schema__ = (input.query as ZodObject<ZodRawShape>).shape[
+          name
+        ] as z.ZodType;
 
-			const schema = getJsonSchema({
-				schema: body,
-				operationId,
-				type: "output-body",
-				zodToJsonOptions,
-			});
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        return {
+          name,
+          in: 'query',
+          required: !schema__.isOptional(),
 
-			const ref = isSchemaRef(schema)
-				? schema.$ref
-				: `#/components/schemas/${key}`;
+          schema: schema_,
+        } as OpenAPI.ParameterObject;
+      }),
+    ];
+  }
 
-			if (!isSchemaRef(schema)) {
-				responseBodySchemas[method] = [
-					...(responseBodySchemas[method] ?? []),
-					{
-						key,
-						ref,
-						schema,
-					},
-				];
-			}
+  paths[routeName] = {
+    ...openApiPath,
+    [method]: merge(generatedOperationObject, openApiOperation),
+  };
 
-			const description = body.description ?? `Response for status ${status}`;
+  const requestBodySchemaMapping = Object.values(requestBodySchemas).reduce<{
+    [key: string]: OpenAPI.SchemaObject;
+  }>((acc, { key, schema }) => {
+    // eslint-disable-next-line no-param-reassign
+    acc[key] = schema;
 
-			return Object.assign(obj, {
-				[status]: {
-					description,
-					content: {
-						[contentType]: {
-							schema: {
-								$ref: ref,
-							},
-						},
-					},
-				},
-			});
-		},
-		baseOperationResponses,
-	);
+    return acc;
+  }, {});
 
-	let pathParameters: OpenAPI.ParameterObject[] = [];
+  const responseBodySchemaMapping = Object.values(responseBodySchemas)
+    .flat()
+    .reduce<{ [key: string]: OpenAPI.SchemaObject }>((acc, { key, schema }) => {
+      // eslint-disable-next-line no-param-reassign
+      acc[key] = schema;
 
-	if (input?.params) {
-		const schema =
-			getJsonSchema({
-				schema: input.params,
-				operationId,
-				type: "input-params",
-			}).properties ?? {};
+      return acc;
+    }, baseResponseBodySchemaMapping);
 
-		pathParameters = Object.entries(schema).map(([name, schema_]) => {
-			const schema__ = (input.params as ZodObject<ZodRawShape>).shape[
-				name
-			] as z.ZodType;
+  const schemas: { [key: string]: OpenAPI.SchemaObject } = {
+    ...requestBodySchemaMapping,
+    ...responseBodySchemaMapping,
+  };
 
-			// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-			return {
-				name,
-				in: "path",
-				required: !schema__.isOptional(),
-
-				schema: schema_,
-			} as OpenAPI.ParameterObject;
-		});
-
-		generatedOperationObject.parameters = [
-			...(generatedOperationObject.parameters ?? []),
-			...pathParameters,
-		];
-	}
-
-	const automaticPathParameters = routeName
-		// eslint-disable-next-line regexp/no-unused-capturing-group, sonarjs/slow-regex
-		.match(/\{([^}]+)\}/g)
-		?.map((param) => param.replaceAll(/[{}]/g, ""))
-		// Filter out path parameters that have been explicitly defined.
-		.filter((_name) => !pathParameters?.some(({ name }) => name === _name));
-
-	if (automaticPathParameters?.length) {
-		generatedOperationObject.parameters = [
-			...(generatedOperationObject.parameters ?? []),
-			...(automaticPathParameters.map((name) => ({
-				name,
-				in: "path",
-				required: true,
-				schema: { type: "string" },
-			})) as OpenAPI.ParameterObject[]),
-		];
-	}
-
-	if (input?.query) {
-		const schema =
-			getJsonSchema({
-				schema: input.query,
-				operationId,
-				type: "input-query",
-			}).properties ?? {};
-
-		generatedOperationObject.parameters = [
-			...(generatedOperationObject.parameters ?? []),
-			...Object.entries(schema).map(([name, schema_]) => {
-				const schema__ = (input.query as ZodObject<ZodRawShape>).shape[
-					name
-				] as z.ZodType;
-
-				// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-				return {
-					name,
-					in: "query",
-					required: !schema__.isOptional(),
-
-					schema: schema_,
-				} as OpenAPI.ParameterObject;
-			}),
-		];
-	}
-
-	paths[routeName] = {
-		...openApiPath,
-		[method]: merge(generatedOperationObject, openApiOperation),
-	};
-
-	const requestBodySchemaMapping = Object.values(requestBodySchemas).reduce<{
-		[key: string]: OpenAPI.SchemaObject;
-	}>((acc, { key, schema }) => {
-		// eslint-disable-next-line no-param-reassign
-		acc[key] = schema;
-
-		return acc;
-	}, {});
-
-	const responseBodySchemaMapping = Object.values(responseBodySchemas)
-		.flat()
-		.reduce<{ [key: string]: OpenAPI.SchemaObject }>((acc, { key, schema }) => {
-			// eslint-disable-next-line no-param-reassign
-			acc[key] = schema;
-
-			return acc;
-		}, baseResponseBodySchemaMapping);
-
-	const schemas: { [key: string]: OpenAPI.SchemaObject } = {
-		...requestBodySchemaMapping,
-		...responseBodySchemaMapping,
-	};
-
-	return { paths, schemas };
+  return { paths, schemas };
 };

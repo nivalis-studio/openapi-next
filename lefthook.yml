@@ -3,10 +3,9 @@ commit-msg:
     commitlint:
       run: bun commitlint --edit
 pre-commit:
+  parallel: true
   jobs:
-    - run:
-        bun biome check --write --no-errors-on-unmatched
-        --files-ignore-unknown=true --colors=off {staged_files}
+    - run: bun biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       glob:
         - "*.cjs"
         - "*.mjs"
@@ -20,3 +19,4 @@ pre-commit:
         - "*.jsonc"
         - "*.css"
       stage_fixed: true
+    - run: bun run ts

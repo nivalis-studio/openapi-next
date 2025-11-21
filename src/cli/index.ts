@@ -4,48 +4,146 @@
 /* eslint-disable unicorn/no-process-exit */
 /* eslint-disable node/no-process-exit */
 
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
-import path from "node:path";
-import { merge } from "es-toolkit/compat";
-import type { OpenAPIV3_1 as OpenAPI } from "openapi-types";
-import { format } from "prettier";
-import type { ToJsonOptions } from "../lib/zod";
-import type { NrfOasData, OpenApiObject } from "../types/open-api";
-import { isValidMethod } from "../utils/is-valid-method";
+import { existsSync, readdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { merge } from 'es-toolkit/compat';
+import { format } from 'prettier';
+import { isValidMethod } from '../utils/is-valid-method';
+import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
+import type { ToJsonOptions } from '../lib/zod';
+import type { NrfOasData, OpenApiObject } from '../types/open-api';
 
 type RequestHandler = {
-	_generateOpenApi: (
-		routeName: string,
-		zodToJsonOptions?: ToJsonOptions,
-	) => NrfOasData;
+  _generateOpenApi: (
+    routeName: string,
+    zodToJsonOptions?: ToJsonOptions,
+  ) => NrfOasData;
 };
 
-/*
- * Filter routes to include:
- * - Remove any routes that are not route handlers.
- * - Remove catch-all routes.
- * - Filter RPC routes.
- * - Filter disallowed paths.
- */
-const getCleanedRoutes = (files: string[]) =>
-	files.filter((file) => file.endsWith("route.ts") && !file.includes("[..."));
+const logInfo = (message: string) => {
+  process.stdout.write(`${message}\n`);
+};
 
-const getRouteName = (file: string) =>
-	`/${file}`
-		.replace("/route.ts", "")
-		.replace("/route.js", "")
-		.replaceAll("\\", "/")
-		.replaceAll("[", "{")
-		.replaceAll("]", "}")
-		.replaceAll(/\/?\([^)]*\)/g, "")
-		.replaceAll(/\/+/g, "/");
+const logError = (message: string) => {
+  process.stderr.write(`${message}\n`);
+};
+
+const ROUTE_FILE_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'] as const;
+const ROUTE_EXTENSION_PATTERN = ROUTE_FILE_EXTENSIONS.join('|');
+const ROUTE_FILENAME_REGEX = new RegExp(
+  `route\\.(?:${ROUTE_EXTENSION_PATTERN})$`,
+);
+const ROUTE_SUFFIX_REGEX = new RegExp(
+  `/route\\.(?:${ROUTE_EXTENSION_PATTERN})$`,
+);
+const normalizeRoutePath = (file: string) => file.replace(/\\/g, '/');
+
+const getNestedFiles = (basePath: string, dir = ''): Array<string> => {
+  const dirents = readdirSync(path.join(basePath, dir), {
+    withFileTypes: true,
+  });
+
+  const files = dirents.map(dirent => {
+    const res = path.join(dir, dirent.name);
+
+    return dirent.isDirectory() ? getNestedFiles(basePath, res) : res;
+  });
+
+  return files.flat();
+};
+
+const sortObjectByKeys = <T extends { [key: string]: unknown }>(obj: T): T => {
+  const unordered = { ...obj };
+
+  return Object.keys(unordered)
+    .sort((a, b) => a.localeCompare(b))
+    .reduce<{ [key: string]: unknown }>((acc, key) => {
+      // eslint-disable-next-line no-param-reassign
+      acc[key] = unordered[key];
+
+      return acc;
+    }, {}) as T;
+};
+
+const getCleanedRoutes = (files: Array<string>) =>
+  files.filter(file => {
+    const normalized = normalizeRoutePath(file);
+
+    return (
+      ROUTE_FILENAME_REGEX.test(normalized) && !normalized.includes('[...')
+    );
+  });
+
+const getRouteName = (file: string) => {
+  const normalized = normalizeRoutePath(file);
+
+  return `/${normalized}`
+    .replace(ROUTE_SUFFIX_REGEX, '')
+    .replace(/\[/g, '{')
+    .replace(/\]/g, '}')
+    .replace(/\/?\([^)]*\)/g, '')
+    .replace(/\/+/g, '/');
+};
+
+type AggregatedRouteData = {
+  paths: OpenAPI.PathsObject;
+  schemas: { [key: string]: OpenAPI.SchemaObject };
+};
+
+const importRouteHandlers = async (
+  route: string,
+  basePath: string,
+): Promise<Array<RequestHandler>> => {
+  const filePathToRoute = path.join(basePath, route);
+
+  const url = new URL(`file://${filePathToRoute}`).toString();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+  const res = await import(url).then(mod => mod.default || mod);
+
+  return (
+    Object.entries(res)
+      .filter(([key]) => isValidMethod(key))
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      .map(([_key, handler]) => handler as RequestHandler)
+  );
+};
+
+const aggregateRouteData = (
+  handlers: Array<RequestHandler>,
+  routeName: string,
+  zodToJsonOptions?: ToJsonOptions,
+): AggregatedRouteData =>
+  handlers.reduce<AggregatedRouteData>(
+    (acc, handler) => {
+      try {
+        const data = handler._generateOpenApi(routeName, zodToJsonOptions);
+
+        if (isNrfOasData(data)) {
+          acc.paths = { ...acc.paths, ...data.paths };
+          acc.schemas = { ...acc.schemas, ...data.schemas };
+        }
+      } catch (error) {
+        if (
+          !(
+            error instanceof TypeError &&
+            error.message.includes('._generateOpenApi is not a function')
+          )
+        ) {
+          logError(`${error as Error}`);
+        }
+      }
+
+      return acc;
+    },
+    { paths: {}, schemas: {} },
+  );
 
 const isNrfOasData = (x: unknown): x is NrfOasData => {
-	if (typeof x !== "object" || x === null) {
-		return false;
-	}
+  if (typeof x !== 'object' || x === null) {
+    return false;
+  }
 
-	return "paths" in x;
+  return 'paths' in x;
 };
 
 /**
@@ -63,135 +161,86 @@ const isNrfOasData = (x: unknown): x is NrfOasData => {
  * @returns {Promise<object>} The generated OpenAPI specification
  */
 export const generateOpenapiSpec = async (
-	info: {
-		title: string;
-		description: string | undefined;
-		version: string;
-	},
-	options?: {
-		openApiObject?: OpenApiObject;
-		zodToJsonOptions?: ToJsonOptions;
-	},
-	// eslint-disable-next-line sonarjs/cognitive-complexity
+  info: {
+    title: string;
+    description: string | undefined;
+    version: string;
+  },
+  options?: {
+    openApiObject?: OpenApiObject;
+    zodToJsonOptions?: ToJsonOptions;
+  },
+  // eslint-disable-next-line sonarjs/cognitive-complexity
 ) => {
-	const { openApiObject, zodToJsonOptions } = options ?? {};
+  const { openApiObject, zodToJsonOptions } = options ?? {};
 
-	console.log("Generating OpenAPI spec...");
+  logInfo('Generating OpenAPI spec...');
 
-	const appRouterPath = path.join(process.cwd(), "./src/app/api/");
+  const appRouterPath = path.join(process.cwd(), './src/app/api/');
 
-	if (!existsSync(appRouterPath)) {
-		console.log("No API routes found.");
+  if (!existsSync(appRouterPath)) {
+    logInfo('No API routes found.');
 
-		process.exit(0);
-	}
+    process.exit(0);
+  }
 
-	const getNestedFiles = (basePath: string, dir: string): string[] => {
-		const dirents = readdirSync(path.join(basePath, dir), {
-			withFileTypes: true,
-		});
+  const files = getNestedFiles(appRouterPath);
+  const routes = getCleanedRoutes(files);
 
-		// eslint-disable-next-line sonarjs/function-return-type
-		const files = dirents.map((dirent) => {
-			const res = path.join(dir, dirent.name);
+  const aggregatedResults = await Promise.all(
+    routes.map(async route => {
+      const handlers = await importRouteHandlers(route, appRouterPath);
 
-			return dirent.isDirectory() ? getNestedFiles(basePath, res) : res;
-		});
+      return aggregateRouteData(
+        handlers,
+        getRouteName(route),
+        zodToJsonOptions,
+      );
+    }),
+  );
 
-		return files.flat();
-	};
+  const { paths, schemas } = aggregatedResults.reduce<AggregatedRouteData>(
+    (acc, current) => ({
+      paths: { ...acc.paths, ...current.paths },
+      schemas: { ...acc.schemas, ...current.schemas },
+    }),
+    { paths: {}, schemas: {} },
+  );
 
-	const files = getNestedFiles(appRouterPath, "");
-	const routes = getCleanedRoutes(files);
+  const components =
+    Object.keys(schemas).length > 0
+      ? { components: { schemas: sortObjectByKeys(schemas) } }
+      : {};
 
-	let paths: OpenAPI.PathsObject = {};
-	let schemas: { [key: string]: OpenAPI.SchemaObject } = {};
+  const spec: OpenAPI.Document = merge(
+    {
+      openapi: '3.1.0',
+      info: merge(info, openApiObject?.info),
+      paths: sortObjectByKeys(paths),
+    },
+    components,
+    openApiObject as OpenAPI.Document,
+  );
 
-	for (const route of routes) {
-		const filePathToRoute = path.join(appRouterPath, route);
+  const publicDir = path.join(process.cwd(), 'public');
+  const openApiFilePath = path.join(publicDir, 'openapi.json');
 
-		const url = new URL(`file://${filePathToRoute}`).toString();
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-		const res = await import(url).then((mod) => mod.default || mod);
+  try {
+    if (existsSync(publicDir)) {
+      const jsonSpec = await format(JSON.stringify(spec), {
+        parser: 'json',
+      });
 
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-		const handlers = Object.entries(res)
-			.filter(([key]) => isValidMethod(key))
+      writeFileSync(openApiFilePath, jsonSpec, null);
 
-			.map(([_key, handler]) => handler as RequestHandler);
-
-		for (const handler of handlers) {
-			try {
-				const data = handler._generateOpenApi(
-					getRouteName(route),
-					zodToJsonOptions,
-				);
-
-				if (isNrfOasData(data)) {
-					paths = { ...paths, ...data.paths };
-					schemas = { ...schemas, ...data.schemas };
-				}
-			} catch (error) {
-				if (
-					!(
-						error instanceof TypeError &&
-						error.message.includes("._generateOpenApi is not a function")
-					)
-				) {
-					console.error(error);
-				}
-			}
-		}
-	}
-
-	const sortObjectByKeys = <T extends { [key: string]: unknown }>(
-		obj: T,
-	): T => {
-		const unordered = { ...obj };
-
-		return Object.keys(unordered)
-			.sort((a, b) => a.localeCompare(b))
-			.reduce<{ [key: string]: unknown }>((_obj, key) => {
-				// eslint-disable-next-line no-param-reassign
-				_obj[key] = unordered[key];
-
-				return _obj;
-			}, {}) as T;
-	};
-
-	const components =
-		Object.keys(schemas).length > 0
-			? { components: { schemas: sortObjectByKeys(schemas) } }
-			: {};
-
-	const spec: OpenAPI.Document = merge(
-		{
-			openapi: "3.1.0",
-			info: merge(info, openApiObject?.info),
-			paths: sortObjectByKeys(paths),
-		},
-		components,
-		openApiObject as OpenAPI.Document,
-	);
-
-	const openApiFilePath = path.join(process.cwd(), "public", "openapi.json");
-
-	try {
-		if (existsSync(path.join(process.cwd(), "public"))) {
-			const jsonSpec = await format(JSON.stringify(spec), {
-				parser: "json",
-			});
-
-			writeFileSync(openApiFilePath, jsonSpec, null);
-
-			console.info("OpenAPI spec generated successfully!");
-		} else {
-			console.info(
-				"The `public` folder was not found. Generating OpenAPI spec aborted.",
-			);
-		}
-	} catch (error) {
-		// eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-		console.error(`Error while generating the API spec: ${error}`);
-	}
+      logInfo('OpenAPI spec generated successfully!');
+    } else {
+      logInfo(
+        'The `public` folder was not found. Generating OpenAPI spec aborted.',
+      );
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : `${error}`;
+    logError(`Error while generating the API spec: ${errorMessage}`);
+  }
 };
