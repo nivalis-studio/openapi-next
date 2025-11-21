@@ -35,11 +35,7 @@
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
-	"files": [
-		"LICENSE",
-		"README.md",
-		"dist"
-	],
+	"files": ["LICENSE", "README.md", "dist"],
 	"scripts": {
 		"test": "bun test",
 		"build": "unbuild",
@@ -50,17 +46,19 @@
 		"prepare": "lefthook install"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.2.4",
-		"@commitlint/cli": "19.8.1",
-		"@commitlint/config-conventional": "19.8.1",
-		"@nivalis/biome-config": "0.1.3",
+		"@biomejs/biome": "2.3.6",
+		"@commitlint/cli": "20.1.0",
+		"@commitlint/config-conventional": "20.0.0",
+		"@nivalis/biome-config": "2.3.6",
 		"@total-typescript/ts-reset": "0.6.1",
-		"@types/bun": "1.2.22",
+		"@types/bun": "1.3.2",
 		"@types/qs": "6.14.0",
-		"lefthook": "1.13.0",
+		"lefthook": "2.0.4",
+		"next": "^16.0.3",
 		"unbuild": "3.6.1"
 	},
 	"peerDependencies": {
+		"next": "^16.0.3",
 		"typescript": "^5.0.0"
 	},
 	"unbuild": {
@@ -79,11 +77,10 @@
 	},
 	"dependencies": {
 		"@nivalis/std": "^2.0.0",
-		"es-toolkit": "1.39.10",
-		"next": "^15.5.3",
+		"es-toolkit": "1.42.0",
 		"openapi-types": "12.1.3",
 		"prettier": "^3.6.2",
 		"qs": "^6.14.0",
-		"zod": "^4.1.9"
+		"zod": "^4.1.12"
 	}
 }
