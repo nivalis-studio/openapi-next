@@ -15,7 +15,7 @@
 		"url": "https://github.com/nivalis-studio/openapi-next/issues"
 	},
 	"license": "MIT",
-	"packageManager": "bun@1.2.22",
+	"packageManager": "pnpm@10.23.0",
 	"bin": {
 		"openapi-next": "dist/cli/index.mjs"
 	},
