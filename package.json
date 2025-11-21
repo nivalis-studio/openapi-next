@@ -47,7 +47,7 @@
 		"lint": "biome check",
 		"lint:fix": "biome check --write",
 		"ts": "tsc",
-		"prepare": "bunx lefthook install"
+		"prepare": "lefthook install"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.4",
