@@ -9,7 +9,8 @@ import { parseContentType } from '../lib/content-type';
 import { getPathsFromRoute } from '../lib/openapi';
 import { openapiFailure } from '../lib/response';
 import { validateSchema } from '../lib/zod';
-import type { HttpStatusError } from '@nivalis/std/http-status';
+import type { HttpStatusError } from '@nivalis/std';
+import type { HeadersInit } from 'bun';
 import type z from 'zod';
 import type { HttpMethod } from '../lib/http';
 import type { ToJsonOptions } from '../lib/zod';
@@ -71,7 +72,7 @@ export const routeHandler = <Method extends HttpMethod>({
       message: string;
       statusCode: StatusCode;
       error?: unknown;
-      headers?: Record<string, string | undefined>;
+      headers?: HeadersInit;
     }) =>
       NextResponse.json(
         openapiFailure({

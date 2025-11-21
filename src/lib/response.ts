@@ -1,6 +1,6 @@
-import { httpStatus } from '@nivalis/std/http-status';
+import { httpStatus } from '@nivalis/std';
 import { z } from 'zod';
-import type { HttpStatusError, HttpStatusOk } from '@nivalis/std/http-status';
+import type { HttpStatusError, HttpStatusOk } from '@nivalis/std';
 
 export type OpenapiSuccess<
   ValueObj,
