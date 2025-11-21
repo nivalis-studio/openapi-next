@@ -29,30 +29,30 @@
 		"ts": "tsc --noEmit --incremental"
 	},
 	"dependencies": {
-		"@nivalis/std": "catalog:",
-		"es-toolkit": "catalog:",
-		"openapi-types": "catalog:",
-		"prettier": "catalog:",
-		"qs": "catalog:",
-		"zod": "catalog:"
+		"@nivalis/std": "2.0.0",
+		"es-toolkit": "1.42.0",
+		"openapi-types": "12.1.3",
+		"prettier": "3.6.2",
+		"qs": "6.14.0",
+		"zod": "4.1.12"
 	},
 	"peerDependencies": {
 		"next": "^16.0.3",
 		"typescript": "^5.0.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "catalog:",
-		"@commitlint/cli": "catalog:",
-		"@commitlint/config-conventional": "catalog:",
-		"@nivalis/biome-config": "catalog:",
-		"@total-typescript/ts-reset": "catalog:",
-		"@types/bun": "catalog:",
-		"@types/node": "catalog:",
-		"@types/qs": "catalog:",
-		"next": "catalog:",
-		"lefthook": "catalog:",
-		"typescript": "catalog:",
-		"zshy": "catalog:"
+		"@biomejs/biome": "2.3.7",
+		"@commitlint/cli": "20.1.0",
+		"@commitlint/config-conventional": "20.0.0",
+		"@nivalis/biome-config": "2.3.7",
+		"@total-typescript/ts-reset": "0.6.1",
+		"@types/bun": "1.3.3",
+		"@types/node": "22.2.0",
+		"lefthook": "2.0.4",
+		"typescript": "5.9.3",
+		"zshy": "0.6.0",
+		"@types/qs": "6.14.0",
+		"next": "16.0.3"
 	},
 	"zshy": "./src/index.ts",
 	"files": ["dist"],
