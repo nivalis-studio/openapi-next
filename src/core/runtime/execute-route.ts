@@ -1,3 +1,4 @@
+import { Effect } from 'effect';
 import { errorResponseBody, internalErrorBody } from '../errors/error-shape';
 import { validateInput } from './validate-input';
 import { validateOutput } from './validate-output';
@@ -42,13 +43,35 @@ const toResponseBody = (body: unknown): ResponseBody => {
   return String(body);
 };
 
-export const executeRoute = async (
+type InputValidationError = {
+  readonly _tag: 'InputValidationError';
+  readonly error: unknown;
+};
+
+type HandlerError = {
+  readonly _tag: 'HandlerError';
+  readonly error: unknown;
+};
+
+type ExecutionError = InputValidationError | HandlerError;
+
+/**
+ * Internal Effect-based route execution.
+ */
+const executeRouteEffect = (
   route: RouteDefinition,
   request: Request,
   paramsPromise: Promise<unknown>,
-): Promise<Response> => {
-  try {
-    const input = await validateInput(route, request, paramsPromise);
+): Effect.Effect<Response, never> =>
+  Effect.gen(function* () {
+    const input = yield* Effect.tryPromise({
+      try: () => validateInput(route, request, paramsPromise),
+      catch: (error): ExecutionError => ({
+        _tag: 'InputValidationError',
+        error,
+      }),
+    });
+
     if (!input.ok) {
       return Response.json(
         errorResponseBody(
@@ -60,7 +83,14 @@ export const executeRoute = async (
       );
     }
 
-    const result = await route.handler(input.data);
+    const result = yield* Effect.tryPromise({
+      try: () => Promise.resolve(route.handler(input.data)),
+      catch: (error): ExecutionError => ({
+        _tag: 'HandlerError',
+        error,
+      }),
+    });
+
     const output = validateOutput(route.responses, result);
     if (!output.ok) {
       return Response.json(
@@ -82,9 +112,31 @@ export const executeRoute = async (
       status: result.status,
       headers,
     });
-  } catch (error) {
-    return Response.json(internalErrorBody(error), {
-      status: INTERNAL_SERVER_ERROR_STATUS,
-    });
-  }
+  }).pipe(
+    Effect.catchAll((error: ExecutionError) =>
+      Effect.sync(() => {
+        if (error._tag === 'HandlerError') {
+          return Response.json(internalErrorBody(error.error), {
+            status: INTERNAL_SERVER_ERROR_STATUS,
+          });
+        }
+
+        return Response.json(internalErrorBody(error.error), {
+          status: INTERNAL_SERVER_ERROR_STATUS,
+        });
+      }),
+    ),
+  );
+
+/**
+ * Execute a route definition with the given request.
+ * Public API remains unchanged - returns Promise<Response>.
+ */
+export const executeRoute = (
+  route: RouteDefinition,
+  request: Request,
+  paramsPromise: Promise<unknown>,
+): Promise<Response> => {
+  const effect = executeRouteEffect(route, request, paramsPromise);
+  return Effect.runPromise(effect);
 };

@@ -4,19 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-catalogs:
-  default:
-    taze:
-      specifier: 19.11.0
-      version: 19.11.0
-
 importers:
 
   .:
     dependencies:
-      '@nivalis/std':
-        specifier: 2.0.0
-        version: 2.0.0(typescript@5.9.3)
+      effect:
+        specifier: 3.21.0
+        version: 3.21.0
       es-toolkit:
         specifier: 1.45.1
         version: 1.45.1
@@ -43,7 +37,7 @@ importers:
         specifier: 20.5.0
         version: 20.5.0
       '@hey-api/openapi-ts':
-        specifier: latest
+        specifier: 0.95.0
         version: 0.95.0(typescript@5.9.3)
       '@nivalis/biome-config':
         specifier: 2.4.10
@@ -67,7 +61,7 @@ importers:
         specifier: 16.0.3
         version: 16.0.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       taze:
-        specifier: 'catalog:'
+        specifier: 19.11.0
         version: 19.11.0
       typescript:
         specifier: 5.9.3
@@ -476,12 +470,6 @@ packages:
     peerDependencies:
       '@biomejs/biome': '>=2'
 
-  '@nivalis/std@2.0.0':
-    resolution: {integrity: sha512-CIQ/5U1n1S4YC5RZEoF/Vxd/PIodrBkRlC+IOY0QY6OwKpEWaktOviTybEz9p11i6/2eM/0RBYSjgJQjE8W37g==}
-    engines: {node: '>=17.0.0'}
-    peerDependencies:
-      typescript: ^5.0.0
-
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -504,6 +492,9 @@ packages:
   '@simple-libs/stream-utils@1.2.0':
     resolution: {integrity: sha512-KxXvfapcixpz6rVEB6HPjOUZT22yN6v0vI0urQSk1L8MlEWPDFCZkhw2xmkyoTGYeFw7tWTZd7e3lVzRZRN/EA==}
     engines: {node: '>=18'}
+
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
@@ -699,6 +690,9 @@ packages:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
 
+  effect@3.21.0:
+    resolution: {integrity: sha512-PPN80qRokCd1f015IANNhrwOnLO7GrrMQfk4/lnZRE/8j7UPWrNNjPV0uBrZutI/nHzernbW+J0hdqQysHiSnQ==}
+
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
@@ -730,6 +724,10 @@ packages:
 
   exsolve@1.0.8:
     resolution: {integrity: sha512-LmDxfWXwcTArk8fUEnOfSZpHOJ6zOMUJKOtFLFqJLoKJetuQG874Uc7/Kki7zFLzYybmZhp1M7+98pfMqeX8yA==}
+
+  fast-check@3.23.2:
+    resolution: {integrity: sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A==}
+    engines: {node: '>=8.0.0'}
 
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
@@ -1093,6 +1091,9 @@ packages:
     resolution: {integrity: sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==}
     engines: {node: '>=14'}
     hasBin: true
+
+  pure-rand@6.1.0:
+    resolution: {integrity: sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==}
 
   qs@6.15.0:
     resolution: {integrity: sha512-mAZTtNCeetKMH+pSjrb76NAM8V9a05I9aBZOHztWy/UqcJdQYNsf59vrRKWnojAT9Y+GbIvoTBC++CPHqpDBhQ==}
@@ -1661,10 +1662,6 @@ snapshots:
     dependencies:
       '@biomejs/biome': 2.4.10
 
-  '@nivalis/std@2.0.0(typescript@5.9.3)':
-    dependencies:
-      typescript: 5.9.3
-
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -1686,6 +1683,8 @@ snapshots:
       '@simple-libs/stream-utils': 1.2.0
 
   '@simple-libs/stream-utils@1.2.0': {}
+
+  '@standard-schema/spec@1.1.0': {}
 
   '@swc/helpers@0.5.15':
     dependencies:
@@ -1871,6 +1870,11 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
+  effect@3.21.0:
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      fast-check: 3.23.2
+
   emoji-regex@8.0.0: {}
 
   env-paths@2.2.1: {}
@@ -1892,6 +1896,10 @@ snapshots:
   escalade@3.2.0: {}
 
   exsolve@1.0.8: {}
+
+  fast-check@3.23.2:
+    dependencies:
+      pure-rand: 6.1.0
 
   fast-deep-equal@3.1.3: {}
 
@@ -2207,6 +2215,8 @@ snapshots:
   powershell-utils@0.1.0: {}
 
   prettier@3.8.1: {}
+
+  pure-rand@6.1.0: {}
 
   qs@6.15.0:
     dependencies:

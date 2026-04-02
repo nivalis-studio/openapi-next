@@ -31,7 +31,7 @@
 		"ts": "tsc --noEmit --incremental"
 	},
 	"dependencies": {
-		"@nivalis/std": "2.0.0",
+		"effect": "3.21.0",
 		"es-toolkit": "1.45.1",
 		"openapi-types": "12.1.3",
 		"prettier": "3.8.1",
@@ -54,7 +54,7 @@
 		"@types/qs": "6.15.0",
 		"lefthook": "2.1.4",
 		"next": "16.0.3",
-		"taze": "catalog:",
+		"taze": "19.11.0",
 		"typescript": "5.9.3",
 		"zshy": "0.7.0"
 	},
