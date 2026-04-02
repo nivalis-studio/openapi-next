@@ -1,6 +1,18 @@
-// biome-ignore lint/performance/noBarrelFile: Package entrypoint consolidates exports for consumers
-export { generateOpenapiSpec } from './cli';
-export { routeHandler as route } from './handler';
-export * from './lib/response';
-export { TypedNextResponse } from './types/operation';
-export type { TypedNextRequest } from './types/operation';
+// biome-ignore-all lint/performance/noBarrelFile: Package entrypoint consolidates exports for consumers
+export const generateOpenapiSpec: typeof import('./cli/public-generate-openapi').generateOpenapiSpec =
+  async (...args) => {
+    const { generateOpenapiSpec: lazyGenerateOpenapiSpec } = await import(
+      './cli/public-generate-openapi'
+    );
+
+    return lazyGenerateOpenapiSpec(...args);
+  };
+export { defineRoute } from './core/define-route';
+export type {
+  DefinedRoute,
+  HttpMethod,
+  RouteDefinition,
+  RouteHandlerResult,
+  RouteInput,
+  RouteResponses,
+} from './core/contract';

@@ -1,5 +1,10 @@
-import { z } from 'zod';
+import {
+  toRequestJsonSchema,
+  toResponseJsonSchema,
+  type ZodToJsonOptions,
+} from '../core/openapi/json-schema';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
+import type { z } from 'zod';
 
 const isZodSchema = (schema: unknown): schema is z.ZodType =>
   schema != null && typeof schema === 'object' && '_def' in schema;
@@ -17,7 +22,6 @@ const zodSchemaValidator = <Output, Schema extends z.ZodType<Output>>({
   return {
     valid: data.success,
     errors,
-
     data: data.success ? data.data : null,
   };
 };
@@ -38,7 +42,25 @@ export const validateSchema = <Output, Schema extends z.ZodType<Output>>({
 
 type SchemaType = 'input-params' | 'input-query' | 'input-body' | 'output-body';
 
-export type ToJsonOptions = Parameters<typeof z.toJSONSchema>[1];
+export type ToJsonOptions = ZodToJsonOptions;
+
+const roleFromType = (
+  type: SchemaType,
+): 'params' | 'query' | 'requestBody' | 'responseBody' => {
+  if (type === 'input-params') {
+    return 'params';
+  }
+
+  if (type === 'input-query') {
+    return 'query';
+  }
+
+  if (type === 'input-body') {
+    return 'requestBody';
+  }
+
+  return 'responseBody';
+};
 
 export const getJsonSchema = ({
   schema,
@@ -51,21 +73,20 @@ export const getJsonSchema = ({
   type: SchemaType;
   zodToJsonOptions?: ToJsonOptions;
 }): OpenAPI.SchemaObject => {
-  if (isZodSchema(schema)) {
-    try {
-      return z.toJSONSchema(schema, {
-        ...zodToJsonOptions,
-        target: 'draft-2020-12',
-      }) as OpenAPI.SchemaObject;
-    } catch (error) {
-      console.warn(
-        error,
-        `\nWarning: ${type} schema for operation ${operationId} could not be converted to a JSON schema. The OpenAPI spec may not be accurate.`,
-      );
-
-      return {};
-    }
+  if (!isZodSchema(schema)) {
+    throw new Error('Invalid schema.');
   }
 
-  throw new Error('Invalid schema.');
+  const context = {
+    operationId,
+    routePath: '<legacy-route>',
+    method: '<legacy-method>',
+    role: roleFromType(type),
+  };
+
+  return (
+    type === 'output-body'
+      ? toResponseJsonSchema(schema, context, zodToJsonOptions)
+      : toRequestJsonSchema(schema, context, zodToJsonOptions)
+  ) as OpenAPI.SchemaObject;
 };

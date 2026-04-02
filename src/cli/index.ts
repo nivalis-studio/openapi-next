@@ -1,246 +1,139 @@
-/* eslint-disable sonarjs/slow-regex */
-/* eslint-disable max-statements */
-/* eslint-disable no-await-in-loop */
-/* eslint-disable unicorn/no-process-exit */
-/* eslint-disable node/no-process-exit */
+import { generateOpenapiSpec as generateOpenapiSpecInternal } from './public-generate-openapi';
 
-import { existsSync, readdirSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { merge } from 'es-toolkit/compat';
-import { format } from 'prettier';
-import { isValidMethod } from '../utils/is-valid-method';
-import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
-import type { ToJsonOptions } from '../lib/zod';
-import type { NrfOasData, OpenApiObject } from '../types/open-api';
+// biome-ignore lint/performance/noBarrelFile: CLI entrypoint re-export
+export { generateOpenapiSpec } from './public-generate-openapi';
 
-type RequestHandler = {
-  _generateOpenApi: (
-    routeName: string,
-    zodToJsonOptions?: ToJsonOptions,
-  ) => NrfOasData;
+export const CLI_USAGE = [
+  'Usage: openapi-next --title <value> --version <value> [--description <value>]',
+  '',
+  'Options:',
+  '  --title <value>        OpenAPI document title (required)',
+  '  --version <value>      OpenAPI document version (required)',
+  '  --description <value>  OpenAPI document description (optional)',
+  '  --help                 Show this help message',
+].join('\n');
+
+export type CliOptions = {
+  title: string;
+  version: string;
+  description?: string;
 };
 
-const logInfo = (message: string) => {
-  process.stdout.write(`${message}\n`);
+type ParsedCliArguments =
+  | {
+      kind: 'help';
+    }
+  | {
+      kind: 'run';
+      options: CliOptions;
+    };
+
+type Writable = {
+  write: (chunk: string) => unknown;
 };
 
-const logError = (message: string) => {
-  process.stderr.write(`${message}\n`);
+export class CliUsageError extends Error {}
+
+const readValue = (flag: string, value: string | undefined) => {
+  if (value == null || value.startsWith('--') || value.trim().length === 0) {
+    throw new CliUsageError(`Missing value for ${flag}.`);
+  }
+
+  return value;
 };
 
-const ROUTE_FILE_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'] as const;
-const ROUTE_EXTENSION_PATTERN = ROUTE_FILE_EXTENSIONS.join('|');
-const ROUTE_FILENAME_REGEX = new RegExp(
-  `route\\.(?:${ROUTE_EXTENSION_PATTERN})$`,
-);
-const ROUTE_SUFFIX_REGEX = new RegExp(
-  `/route\\.(?:${ROUTE_EXTENSION_PATTERN})$`,
-);
-const normalizeRoutePath = (file: string) => file.replace(/\\/g, '/');
+export const parseCliArguments = (argv: Array<string>): ParsedCliArguments => {
+  const options: Partial<CliOptions> = {};
 
-const getNestedFiles = (basePath: string, dir = ''): Array<string> => {
-  const dirents = readdirSync(path.join(basePath, dir), {
-    withFileTypes: true,
-  });
+  for (let index = 0; index < argv.length; index++) {
+    const argument = argv[index];
 
-  const files = dirents.map(dirent => {
-    const res = path.join(dir, dirent.name);
+    switch (argument) {
+      case '--help': {
+        return { kind: 'help' };
+      }
+      case '--title': {
+        options.title = readValue('--title', argv[index + 1]);
+        index++;
+        break;
+      }
+      case '--version': {
+        options.version = readValue('--version', argv[index + 1]);
+        index++;
+        break;
+      }
+      case '--description': {
+        options.description = readValue('--description', argv[index + 1]);
+        index++;
+        break;
+      }
+      default: {
+        throw new CliUsageError(`Unknown argument: ${argument}.`);
+      }
+    }
+  }
 
-    return dirent.isDirectory() ? getNestedFiles(basePath, res) : res;
-  });
+  if (options.title == null) {
+    throw new CliUsageError('Missing required argument: --title.');
+  }
 
-  return files.flat();
+  if (options.version == null) {
+    throw new CliUsageError('Missing required argument: --version.');
+  }
+
+  return {
+    kind: 'run',
+    options: {
+      title: options.title,
+      version: options.version,
+      description: options.description,
+    },
+  };
 };
 
-const sortObjectByKeys = <T extends { [key: string]: unknown }>(obj: T): T => {
-  const unordered = { ...obj };
-
-  return Object.keys(unordered)
-    .sort((a, b) => a.localeCompare(b))
-    .reduce<{ [key: string]: unknown }>((acc, key) => {
-      // eslint-disable-next-line no-param-reassign
-      acc[key] = unordered[key];
-
-      return acc;
-    }, {}) as T;
-};
-
-const getCleanedRoutes = (files: Array<string>) =>
-  files.filter(file => {
-    const normalized = normalizeRoutePath(file);
-
-    return (
-      ROUTE_FILENAME_REGEX.test(normalized) && !normalized.includes('[...')
-    );
-  });
-
-const getRouteName = (file: string) => {
-  const normalized = normalizeRoutePath(file);
-
-  return `/${normalized}`
-    .replace(ROUTE_SUFFIX_REGEX, '')
-    .replace(/\[/g, '{')
-    .replace(/\]/g, '}')
-    .replace(/\/?\([^)]*\)/g, '')
-    .replace(/\/+/g, '/');
-};
-
-type AggregatedRouteData = {
-  paths: OpenAPI.PathsObject;
-  schemas: { [key: string]: OpenAPI.SchemaObject };
-};
-
-const importRouteHandlers = async (
-  route: string,
-  basePath: string,
-): Promise<Array<RequestHandler>> => {
-  const filePathToRoute = path.join(basePath, route);
-
-  const url = new URL(`file://${filePathToRoute}`).toString();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-  const res = await import(url).then(mod => mod.default || mod);
-
-  return (
-    Object.entries(res)
-      .filter(([key]) => isValidMethod(key))
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      .map(([_key, handler]) => handler as RequestHandler)
-  );
-};
-
-const aggregateRouteData = (
-  handlers: Array<RequestHandler>,
-  routeName: string,
-  zodToJsonOptions?: ToJsonOptions,
-): AggregatedRouteData =>
-  handlers.reduce<AggregatedRouteData>(
-    (acc, handler) => {
-      try {
-        const data = handler._generateOpenApi(routeName, zodToJsonOptions);
-
-        if (isNrfOasData(data)) {
-          acc.paths = { ...acc.paths, ...data.paths };
-          acc.schemas = { ...acc.schemas, ...data.schemas };
-        }
-      } catch (error) {
-        if (
-          !(
-            error instanceof TypeError &&
-            error.message.includes('._generateOpenApi is not a function')
-          )
-        ) {
-          logError(`${error as Error}`);
-        }
+export const runCli = async ({
+  argv,
+  stdout,
+  stderr,
+  generate,
+}: {
+  argv?: Array<string>;
+  stdout?: Writable;
+  stderr?: Writable;
+  generate?: (options: CliOptions) => Promise<unknown>;
+} = {}): Promise<number> => {
+  const parsed = (() => {
+    try {
+      return parseCliArguments(argv ?? process.argv.slice(2));
+    } catch (error) {
+      if (!(error instanceof CliUsageError)) {
+        throw error;
       }
 
-      return acc;
-    },
-    { paths: {}, schemas: {} },
-  );
-
-const isNrfOasData = (x: unknown): x is NrfOasData => {
-  if (typeof x !== 'object' || x === null) {
-    return false;
-  }
-
-  return 'paths' in x;
-};
-
-/**
- * Generates an OpenAPI specification from your Next.js route handlers.
- * This function scans your project for route handlers and automatically generates
- * an OpenAPI specification based on the TypeScript types and configurations.
- * @param {object} info - Configuration options for the API
- * @param {string} info.title - The title of the API
- * @param {string|undefined} info.description - A description of the API
- * @param {string} info.version - The version of the API
- * @param {object} options - Additional configuration options for OpenAPI generation
- * @param {object} options.openApiObject - An OpenAPI Object that can be used to override and extend the auto-generated specification
- * @param {object} options.zodToJsonOptions - Options to pass to the zod
- * `zodToJsonSchema`
- * @returns {Promise<object>} The generated OpenAPI specification
- */
-export const generateOpenapiSpec = async (
-  info: {
-    title: string;
-    description: string | undefined;
-    version: string;
-  },
-  options?: {
-    openApiObject?: OpenApiObject;
-    zodToJsonOptions?: ToJsonOptions;
-  },
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-) => {
-  const { openApiObject, zodToJsonOptions } = options ?? {};
-
-  logInfo('Generating OpenAPI spec...');
-
-  const appRouterPath = path.join(process.cwd(), './src/app/api/');
-
-  if (!existsSync(appRouterPath)) {
-    logInfo('No API routes found.');
-
-    process.exit(0);
-  }
-
-  const files = getNestedFiles(appRouterPath);
-  const routes = getCleanedRoutes(files);
-
-  const aggregatedResults = await Promise.all(
-    routes.map(async route => {
-      const handlers = await importRouteHandlers(route, appRouterPath);
-
-      return aggregateRouteData(
-        handlers,
-        getRouteName(route),
-        zodToJsonOptions,
+      (stderr ?? process.stderr).write(
+        `openapi-next: ${error.message}\n\n${CLI_USAGE}\n`,
       );
-    }),
-  );
+      return null;
+    }
+  })();
 
-  const { paths, schemas } = aggregatedResults.reduce<AggregatedRouteData>(
-    (acc, current) => ({
-      paths: { ...acc.paths, ...current.paths },
-      schemas: { ...acc.schemas, ...current.schemas },
-    }),
-    { paths: {}, schemas: {} },
-  );
+  if (parsed == null) {
+    return 1;
+  }
 
-  const components =
-    Object.keys(schemas).length > 0
-      ? { components: { schemas: sortObjectByKeys(schemas) } }
-      : {};
-
-  const spec: OpenAPI.Document = merge(
-    {
-      openapi: '3.1.0',
-      info: merge(info, openApiObject?.info),
-      paths: sortObjectByKeys(paths),
-    },
-    components,
-    openApiObject as OpenAPI.Document,
-  );
-
-  const publicDir = path.join(process.cwd(), 'public');
-  const openApiFilePath = path.join(publicDir, 'openapi.json');
+  if (parsed.kind === 'help') {
+    (stdout ?? process.stdout).write(`${CLI_USAGE}\n`);
+    return 0;
+  }
 
   try {
-    if (existsSync(publicDir)) {
-      const jsonSpec = await format(JSON.stringify(spec), {
-        parser: 'json',
-      });
-
-      writeFileSync(openApiFilePath, jsonSpec, null);
-
-      logInfo('OpenAPI spec generated successfully!');
-    } else {
-      logInfo(
-        'The `public` folder was not found. Generating OpenAPI spec aborted.',
-      );
-    }
+    await (generate ?? generateOpenapiSpecInternal)(parsed.options);
+    return 0;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : `${error}`;
-    logError(`Error while generating the API spec: ${errorMessage}`);
+    const message = error instanceof Error ? error.message : String(error);
+    (stderr ?? process.stderr).write(
+      `openapi-next: Failed to generate OpenAPI spec: ${message}\n`,
+    );
+    return 1;
   }
 };
