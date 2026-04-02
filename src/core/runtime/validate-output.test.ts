@@ -1,0 +1,82 @@
+import { describe, expect, it } from 'bun:test';
+import { z } from 'zod';
+import { validateOutput } from './validate-output';
+
+const INTERNAL_SERVER_ERROR_STATUS = 500;
+
+describe('validateOutput', () => {
+  it('rejects unknown content type', () => {
+    const result = validateOutput(
+      {
+        200: {
+          description: 'ok',
+          content: {
+            'application/json': { schema: z.object({ ok: z.literal(true) }) },
+          },
+        },
+      },
+      {
+        status: 200,
+        contentType: 'text/plain',
+        body: { ok: true },
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(INTERNAL_SERVER_ERROR_STATUS);
+      expect(result.code).toBe('RESPONSE_VALIDATION_FAILED');
+    }
+  });
+
+  it('rejects schema-invalid body', () => {
+    const result = validateOutput(
+      {
+        200: {
+          description: 'ok',
+          content: {
+            'application/json': {
+              schema: z.object({ count: z.number().int() }),
+            },
+          },
+        },
+      },
+      {
+        status: 200,
+        contentType: 'application/json',
+        body: { count: 'not-a-number' },
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.status).toBe(INTERNAL_SERVER_ERROR_STATUS);
+      expect(result.code).toBe('RESPONSE_VALIDATION_FAILED');
+    }
+  });
+
+  it('returns normalized parsed body on success', () => {
+    const result = validateOutput(
+      {
+        200: {
+          description: 'ok',
+          content: {
+            'application/json': {
+              schema: z.object({ count: z.coerce.number().int() }),
+            },
+          },
+        },
+      },
+      {
+        status: 200,
+        contentType: 'application/json',
+        body: { count: '42' },
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.body).toEqual({ count: 42 });
+    }
+  });
+});
