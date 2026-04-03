@@ -43,27 +43,40 @@ export const generateFromRoutes = async ({
 
   const routes = routeModules.flatMap(routeModule =>
     Object.entries(routeModule.exports).flatMap(([exportName, exportValue]) => {
-      if (!HTTP_METHODS.has(exportName as HttpMethod)) {
-        return [];
-      }
-
+      // Skip non-route exports
       if (!isRouteExport(exportValue)) {
-        // Skip routes that don't have _route metadata (e.g., routes from external libraries like better-auth)
         return [];
       }
 
-      if (exportValue._route.method !== exportName) {
-        throw new Error(
-          `Route export method mismatch: ${routeModule.filePath} (export: ${exportName}, _route.method: ${exportValue._route.method})`,
-        );
+      // Handle HTTP method exports (traditional route.ts files)
+      if (HTTP_METHODS.has(exportName as HttpMethod)) {
+        if (exportValue._route.method !== exportName) {
+          throw new Error(
+            `Route export method mismatch: ${routeModule.filePath} (export: ${exportName}, _route.method: ${exportValue._route.method})`,
+          );
+        }
+
+        return [
+          {
+            routePath: toRoutePath(routeModule.filePath, basePath),
+            route: exportValue._route,
+          },
+        ];
       }
 
-      return [
-        {
-          routePath: toRoutePath(routeModule.filePath, basePath),
-          route: exportValue._route,
-        },
-      ];
+      // Handle contract file exports (contract.ts files)
+      // These export a route object with _route property
+      // Use the HTTP method from the route definition
+      if (HTTP_METHODS.has(exportValue._route.method)) {
+        return [
+          {
+            routePath: toRoutePath(routeModule.filePath, basePath),
+            route: exportValue._route,
+          },
+        ];
+      }
+
+      return [];
     }),
   );
 
