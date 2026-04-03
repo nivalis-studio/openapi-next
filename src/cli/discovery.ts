@@ -6,6 +6,9 @@ const ROUTE_FILE_PATTERN = /route\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const ROUTE_SUFFIX_PATTERN = /\/route\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const ROUTE_GROUP_SEGMENT_PATTERN = /\/?\([^)]*\)/g;
 
+// Pattern for contract files (*.contract.ts)
+const CONTRACT_FILE_PATTERN = /\.contract\.(ts|tsx|js|jsx|mjs|cjs)$/;
+
 export const discoverRouteFiles = (basePath: string): Array<string> => {
   const walk = (dir: string): Array<string> =>
     readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -15,6 +18,24 @@ export const discoverRouteFiles = (basePath: string): Array<string> => {
     });
 
   return walk(basePath).filter(filePath => ROUTE_FILE_PATTERN.test(filePath));
+};
+
+/**
+ * Discovers contract files (*.contract.ts) for OpenAPI generation.
+ * These files contain route definitions without handlers, making them
+ * safe to import during build time without side effects.
+ */
+export const discoverContractFiles = (basePath: string): Array<string> => {
+  const walk = (dir: string): Array<string> =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      const fullPath = path.join(dir, entry.name);
+
+      return entry.isDirectory() ? walk(fullPath) : [fullPath];
+    });
+
+  return walk(basePath).filter(filePath =>
+    CONTRACT_FILE_PATTERN.test(filePath),
+  );
 };
 
 export const toImportUrl = (filePath: string): string =>
