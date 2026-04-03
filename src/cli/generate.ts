@@ -48,9 +48,8 @@ export const generateFromRoutes = async ({
       }
 
       if (!isRouteExport(exportValue)) {
-        throw new Error(
-          `Route export missing _route metadata: ${routeModule.filePath}#${exportName}`,
-        );
+        // Skip routes that don't have _route metadata (e.g., routes from external libraries like better-auth)
+        return [];
       }
 
       if (exportValue._route.method !== exportName) {
