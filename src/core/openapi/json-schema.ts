@@ -16,7 +16,7 @@ const getConversionOptions = (
   options?: ZodToJsonOptions,
 ): ZodToJsonOptions => ({
   cycles: 'ref',
-  reused: 'ref',
+  reused: 'inline',
   ...options,
   io,
   target: 'draft-2020-12',
