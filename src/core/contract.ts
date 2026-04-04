@@ -40,6 +40,13 @@ export type RouteHandlerResult = {
 export type RouteContract = {
   method: HttpMethod;
   operationId: string;
+  /**
+   * Optional path for Next.js typed routes integration.
+   * When provided with Next.js typedRoutes enabled, gives autocomplete
+   * for actual routes in your app.
+   * @example '/api/users/[id]'
+   */
+  path?: string;
   input?: RouteInput;
   responses: RouteResponses;
 };

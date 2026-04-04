@@ -67,3 +67,20 @@ bindContract(contract, async (_request, _context, input) => ({
   contentType: 'application/json',
   body: { id: input.body.email },
 }));
+
+// Test path field is accepted (typed routes integration foundation)
+defineRouteContract({
+  path: '/api/users/[id]',
+  method: 'GET',
+  operationId: 'getUser',
+  responses: {
+    200: {
+      description: 'ok',
+      content: {
+        'application/json': {
+          schema: z.object({ id: z.string() }),
+        },
+      },
+    },
+  },
+});
