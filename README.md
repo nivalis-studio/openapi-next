@@ -59,19 +59,13 @@ export const listUsersContract = defineRouteContract({
 import { bindContract } from "@nivalis/openapi-next";
 import { listUsersContract } from "./contract";
 
-export const GET = bindContract(
-  listUsersContract,
-  async (_request, _context, input) => ({
-    status: 200,
-    body: {
-      success: true,
-      items: await fetchUsers(input.query.page),
-    },
+export const GET = bindContract(listUsersContract, async ({ query }, respond) =>
+  respond.json(200, {
+    success: true,
+    items: await fetchUsers(query.page),
   }),
 );
 ```
-
-> **Note:** The `contentType` field is optional and defaults to `'application/json'`. You only need to specify it when returning non-JSON responses (e.g., `'text/plain'`, `'text/csv'`).
 
 ## Generating OpenAPI
 

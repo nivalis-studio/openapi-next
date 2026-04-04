@@ -26,4 +26,11 @@ describe('docs contract', () => {
     expect(migration.includes('getOpenapiOutputs')).toBe(false);
     expect(migration.includes('route({')).toBe(false);
   });
+
+  it('README uses object-context bindContract handler signature', () => {
+    const readme = readFileSync(readmePath, 'utf8');
+
+    expect(readme.includes('async (_request, _context, input)')).toBe(false);
+    expect(readme.includes('async ({ query }, respond)')).toBe(true);
+  });
 });
