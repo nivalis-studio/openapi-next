@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { ERROR_CODES } from '../errors/error-codes';
+import { isJsonMediaType, normalizeMediaType } from './media-type';
 import type { RouteDefinition } from '../contract';
 
 type InputError = {
@@ -19,12 +20,6 @@ const BAD_REQUEST_STATUS = 400;
 const METHOD_NOT_ALLOWED_STATUS = 405;
 const UNSUPPORTED_MEDIA_TYPE_STATUS = 415;
 const JSON_PARSE_ERROR = Symbol('json-parse-error');
-
-const normalizeMediaType = (contentType: string | null | undefined): string =>
-  contentType?.split(';', 1)[0]?.trim().toLowerCase() ?? '';
-
-const isJsonMediaType = (mediaType: string): boolean =>
-  mediaType === 'application/json' || mediaType.endsWith('+json');
 
 /**
  * Resolve params from the Next.js context params promise.

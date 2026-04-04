@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { ERROR_CODES } from '../errors/error-codes';
+import { normalizeMediaType } from './media-type';
 import type { RouteHandlerResult, RouteResponses } from '../contract';
 import type { ErrorCode } from '../errors/error-codes';
 
@@ -8,9 +9,6 @@ type OutputValidationResult =
   | { ok: false; status: number; code: ErrorCode; message: string };
 
 const INTERNAL_SERVER_ERROR_STATUS = 500;
-
-const normalizeMediaType = (contentType: string): string =>
-  contentType.split(';', 1)[0]?.trim().toLowerCase() ?? '';
 
 type OutputError = {
   status: number;

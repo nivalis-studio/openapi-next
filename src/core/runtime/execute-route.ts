@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { errorResponseBody, internalErrorBody } from '../errors/error-shape';
+import { isJsonMediaType, normalizeMediaType } from './media-type';
 import { createResponder } from './respond';
 import { validateInput } from './validate-input';
 import { validateOutput } from './validate-output';
@@ -13,11 +14,6 @@ import type { ErrorCode } from '../errors/error-codes';
 
 const asErrorCode = (code: string): ErrorCode => code as ErrorCode;
 const INTERNAL_SERVER_ERROR_STATUS = 500;
-
-const isJsonContentType = (contentType: string): boolean => {
-  const mediaType = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? '';
-  return mediaType === 'application/json' || mediaType.endsWith('+json');
-};
 
 const normalizeHeaders = (
   headers: RouteHeaders | undefined,
@@ -110,6 +106,7 @@ const executeRouteEffect = <TContract extends RouteContract>(
     });
 
     const contentType = result.contentType ?? 'application/json';
+    const normalized = normalizeMediaType(contentType);
 
     const output = validateOutput(route.responses, result, contentType);
     if (!output.ok) {
@@ -121,7 +118,7 @@ const executeRouteEffect = <TContract extends RouteContract>(
 
     const headers = normalizeHeaders(result.headers, contentType);
 
-    if (isJsonContentType(contentType)) {
+    if (isJsonMediaType(normalized)) {
       return Response.json(output.body, {
         status: result.status,
         headers,
