@@ -364,4 +364,32 @@ describe('executeRoute', () => {
     const body = (await response.json()) as { error: { code: string } };
     expect(body.error.code).toBe('INVALID_QUERY');
   });
+
+  it('supports object-context handler and respond.json helper', async () => {
+    const response = await executeRoute(
+      {
+        method: 'GET',
+        operationId: 'respond-helper-json',
+        input: {
+          query: z.object({ page: z.coerce.number().int().min(1) }),
+        },
+        responses: {
+          200: {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: z.object({ echo: z.string() }),
+              },
+            },
+          },
+        },
+      },
+      ({ query }, respond) => respond.json(200, { echo: `page:${query.page}` }),
+      new Request('https://api.test/items?page=2', { method: 'GET' }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ echo: 'page:2' });
+  });
 });

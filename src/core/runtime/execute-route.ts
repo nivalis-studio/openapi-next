@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { errorResponseBody, internalErrorBody } from '../errors/error-shape';
+import { createResponder } from './respond';
 import { validateInput } from './validate-input';
 import { validateOutput } from './validate-output';
 import type {
@@ -12,32 +13,6 @@ import type { ErrorCode } from '../errors/error-codes';
 
 const asErrorCode = (code: string): ErrorCode => code as ErrorCode;
 const INTERNAL_SERVER_ERROR_STATUS = 500;
-
-/**
- * Creates a responder object with json and text methods for building responses.
- */
-const createResponder = () => ({
-  json: <TStatus extends number>(
-    status: TStatus,
-    body: unknown,
-    headers?: RouteHeaders,
-  ) => ({
-    status,
-    contentType: 'application/json' as const,
-    body,
-    headers,
-  }),
-  text: <TStatus extends number>(
-    status: TStatus,
-    body: string,
-    headers?: RouteHeaders,
-  ) => ({
-    status,
-    contentType: 'text/plain' as const,
-    body,
-    headers,
-  }),
-});
 
 const isJsonContentType = (contentType: string): boolean => {
   const mediaType = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? '';
