@@ -23,14 +23,15 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => ({
+      },
+      () =>
+        ({
           status: 200,
           contentType: 'application/json',
           body: { count: 'not-a-number' },
-        }),
-      },
+        }) as any,
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(response.status).toBe(INTERNAL_SERVER_ERROR_STATUS);
@@ -53,14 +54,15 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => ({
+      },
+      () =>
+        ({
           status: 200,
           contentType: 'application/json',
           body: { count: '42' },
-        }),
-      },
+        }) as any,
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(response.status).toBe(OK_STATUS);
@@ -81,14 +83,14 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => ({
-          status: 200,
-          contentType: TEXT_PLAIN,
-          body: 'hello world',
-        }),
       },
+      () => ({
+        status: 200,
+        contentType: TEXT_PLAIN,
+        body: 'hello world',
+      }),
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(response.status).toBe(OK_STATUS);
@@ -109,15 +111,15 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => ({
-          status: 200,
-          contentType: 'application/json',
-          body: { ok: true },
-          headers: new Headers({ 'x-request-id': 'from-headers' }),
-        }),
       },
+      () => ({
+        status: 200,
+        contentType: 'application/json',
+        body: { ok: true },
+        headers: new Headers({ 'x-request-id': 'from-headers' }),
+      }),
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(responseWithHeaders.headers.get('x-request-id')).toBe(
@@ -139,15 +141,15 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => ({
-          status: 200,
-          contentType: 'application/json',
-          body: { ok: true },
-          headers: [['x-trace-id', 'from-tuple-array']],
-        }),
       },
+      () => ({
+        status: 200,
+        contentType: 'application/json',
+        body: { ok: true },
+        headers: [['x-trace-id', 'from-tuple-array']],
+      }),
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(responseWithTupleArray.headers.get('x-trace-id')).toBe(
@@ -171,18 +173,18 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => ({
-          status: 200,
-          contentType: 'application/json',
-          body: { ok: true },
-          headers: {
-            'x-request-id': 'from-object',
-            'content-type': TEXT_PLAIN,
-          },
-        }),
       },
+      () => ({
+        status: 200,
+        contentType: 'application/json',
+        body: { ok: true },
+        headers: {
+          'x-request-id': 'from-object',
+          'content-type': TEXT_PLAIN,
+        },
+      }),
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(response.headers.get('x-request-id')).toBe('from-object');
@@ -205,14 +207,15 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => ({
+      },
+      () =>
+        ({
           status: 200,
           contentType: 'application/problem+json; charset=utf-8',
           body: { detail: 404 },
-        }),
-      },
+        }) as any,
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(response.status).toBe(OK_STATUS);
@@ -235,12 +238,12 @@ describe('executeRoute', () => {
             },
           },
         },
-        handler: () => {
-          throw new Error('do not leak this');
-        },
+      },
+      () => {
+        throw new Error('do not leak this');
       },
       new Request('https://api.test/items', { method: 'GET' }),
-      Promise.resolve({}),
+      { params: Promise.resolve({}) },
     );
 
     expect(response.status).toBe(INTERNAL_SERVER_ERROR_STATUS);
@@ -249,7 +252,7 @@ describe('executeRoute', () => {
     expect(JSON.stringify(body)).not.toContain('do not leak this');
   });
 
-  it('supports next-style bound handlers with request context and validated input', async () => {
+  it('supports bound handlers with request context and validated input', async () => {
     const request = new Request('https://api.test/items?page=2', {
       method: 'GET',
     });
@@ -324,7 +327,7 @@ describe('executeRoute', () => {
     expect(await response.json()).toEqual({ ok: true });
   });
 
-  it('does not call next-style handler when input validation fails', async () => {
+  it('does not call handler when input validation fails', async () => {
     let wasHandlerCalled = false;
 
     const response = await executeRoute(

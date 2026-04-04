@@ -114,14 +114,6 @@ export type RouteDefinition = RouteContract & {
   }) => Promise<RouteHandlerResult> | RouteHandlerResult;
 };
 
-export type LegacyRouteDefinition = RouteContract & {
-  handler: (context: {
-    params: unknown;
-    query: unknown;
-    body: unknown;
-  }) => Promise<RouteHandlerResult> | RouteHandlerResult;
-};
-
 export type NextRouteHandler = ((
   request: Request,
   context: { params: Promise<unknown> },

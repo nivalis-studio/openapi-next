@@ -4,7 +4,6 @@ import { validateInput } from './validate-input';
 import { validateOutput } from './validate-output';
 import type {
   BoundRouteHandler,
-  LegacyRouteDefinition,
   RouteContract,
   RouteHeaders,
   RouteInputData,
@@ -145,53 +144,15 @@ const executeRouteEffect = <TContract extends RouteContract>(
   );
 
 /**
- * Execute a route definition with the given request.
- * Public API remains unchanged - returns Promise<Response>.
+ * Execute a route with the given handler and request.
+ * Returns a Promise<Response>.
  */
-const runRoute = <TContract extends RouteContract>(
-  route: TContract,
-  routeHandler: BoundRouteHandler<TContract>,
-  request: Request,
-  context: { params: Promise<unknown> },
-): Promise<Response> => {
-  const effect = executeRouteEffect(route, routeHandler, request, context);
-  return Effect.runPromise(effect);
-};
-
 export function executeRoute<TContract extends RouteContract>(
   route: TContract,
   routeHandler: BoundRouteHandler<TContract>,
   request: Request,
   context: { params: Promise<unknown> },
-): Promise<Response>;
-export function executeRoute(
-  route: LegacyRouteDefinition,
-  request: Request,
-  paramsPromise: Promise<unknown>,
-): Promise<Response>;
-export function executeRoute(
-  route: RouteContract | LegacyRouteDefinition,
-  routeHandlerOrRequest: unknown,
-  requestOrParamsPromise: Request | Promise<unknown>,
-  context?: { params: Promise<unknown> },
 ): Promise<Response> {
-  if (typeof routeHandlerOrRequest === 'function') {
-    return runRoute(
-      route,
-      routeHandlerOrRequest as BoundRouteHandler<RouteContract>,
-      requestOrParamsPromise as Request,
-      context ?? { params: Promise.resolve({}) },
-    );
-  }
-
-  const legacyRoute = route as LegacyRouteDefinition;
-  const request = routeHandlerOrRequest as Request;
-  const paramsPromise = requestOrParamsPromise as Promise<unknown>;
-
-  return runRoute(
-    legacyRoute,
-    async (_request, _context, input) => legacyRoute.handler(input),
-    request,
-    { params: paramsPromise },
-  );
+  const effect = executeRouteEffect(route, routeHandler, request, context);
+  return Effect.runPromise(effect);
 }
