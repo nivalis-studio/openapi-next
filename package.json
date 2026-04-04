@@ -25,7 +25,7 @@
 		"openapi": "bun scripts/generate-openapi.ts",
 		"openapi:codegen-smoke": "bun scripts/openapi-codegen-smoke.ts",
 		"test": "bun test",
-		"build": "zshy",
+		"build": "zshy && bun scripts/post-build.ts",
 		"prepack": "zshy",
 		"prepare": "lefthook install",
 		"ts": "tsc --noEmit --incremental"
@@ -62,22 +62,18 @@
 		"exports": {
 			".": "./src/index.ts",
 			"./cli/bin": "./src/cli/bin.ts"
-		}
+		},
+		"cjs": false
 	},
 	"files": ["dist"],
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.cts",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.cts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
 		},
 		"./cli/bin": {
-			"types": "./dist/cli/bin.d.cts",
-			"import": "./dist/cli/bin.js",
-			"require": "./dist/cli/bin.cjs"
+			"types": "./dist/cli/bin.d.ts",
+			"default": "./dist/cli/bin.js"
 		}
 	}
 }
