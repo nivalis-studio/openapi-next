@@ -38,21 +38,88 @@ export type RouteHandlerResult = {
   headers?: RouteHeaders;
 };
 
-export type RouteDefinition = {
+export type RouteContract = {
   method: HttpMethod;
   operationId: string;
   input?: RouteInput;
   responses: RouteResponses;
-  handler: (context: {
+};
+
+type InputValue<
+  TContract extends RouteContract,
+  Key extends 'params' | 'query' | 'body',
+> =
+  TContract['input'] extends Record<Key, infer Schema>
+    ? Schema extends z.ZodType
+      ? z.output<Schema>
+      : unknown
+    : unknown;
+
+type ResponseStatuses<TContract extends RouteContract> = Extract<
+  keyof TContract['responses'],
+  number
+>;
+
+type ResponseContentTypes<
+  TContract extends RouteContract,
+  Status extends ResponseStatuses<TContract>,
+> = Extract<keyof TContract['responses'][Status]['content'], string>;
+
+type ResponseBody<
+  TContract extends RouteContract,
+  Status extends ResponseStatuses<TContract>,
+  ContentType extends ResponseContentTypes<TContract, Status>,
+> = TContract['responses'][Status]['content'][ContentType]['schema'] extends z.ZodType
+  ? z.output<TContract['responses'][Status]['content'][ContentType]['schema']>
+  : unknown;
+
+export type RouteInputData<TContract extends RouteContract> = {
+  params: InputValue<TContract, 'params'>;
+  query: InputValue<TContract, 'query'>;
+  body: InputValue<TContract, 'body'>;
+};
+
+type ContractRouteHandlerResultForStatus<
+  TContract extends RouteContract,
+  Status extends ResponseStatuses<TContract>,
+> = {
+  [ContentType in ResponseContentTypes<TContract, Status>]: {
+    status: Status;
+    contentType: ContentType;
+    body: ResponseBody<TContract, Status, ContentType>;
+    headers?: RouteHeaders;
+  };
+}[ResponseContentTypes<TContract, Status>];
+
+export type ContractRouteHandlerResult<TContract extends RouteContract> = {
+  [Status in ResponseStatuses<TContract>]: ContractRouteHandlerResultForStatus<
+    TContract,
+    Status
+  >;
+}[ResponseStatuses<TContract>];
+
+export type BoundRouteHandler<TContract extends RouteContract> = (
+  request: Request,
+  context: { params: Promise<unknown> },
+  input: RouteInputData<TContract>,
+) =>
+  | Promise<ContractRouteHandlerResult<TContract>>
+  | ContractRouteHandlerResult<TContract>;
+
+export type RouteDefinition = RouteContract & {
+  handler?: (context: {
     params: unknown;
     query: unknown;
     body: unknown;
   }) => Promise<RouteHandlerResult> | RouteHandlerResult;
 };
 
-export type DefinedRoute = {
-  next: NextRouteHandler;
-  _route: RouteDefinition;
+export type LegacyRouteDefinition = RouteContract & {
+  handler: (context: {
+    params: unknown;
+    query: unknown;
+    body: unknown;
+  }) => Promise<RouteHandlerResult> | RouteHandlerResult;
 };
 
 export type NextRouteHandler = ((

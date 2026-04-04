@@ -1,22 +1,38 @@
-import { generateOpenapiSpec as generateOpenapiSpecInternal } from './public-generate-openapi';
+import { resolvePackageInfo as resolvePackageInfoInternal } from './metadata';
+import { generateOpenapiSpecWithCoverage as generateOpenapiSpecInternal } from './public-generate-openapi';
 
 // biome-ignore lint/performance/noBarrelFile: CLI entrypoint re-export
 export { generateOpenapiSpec } from './public-generate-openapi';
 
 export const CLI_USAGE = [
-  'Usage: openapi-next --title <value> --version <value> [--description <value>]',
+  'Usage: openapi-next [--title <value>] [--version <value>] [--description <value>] [--app-dir <path>] [--output <path>] [--strict-missing-contracts]',
   '',
   'Options:',
-  '  --title <value>        OpenAPI document title (required)',
-  '  --version <value>      OpenAPI document version (required)',
-  '  --description <value>  OpenAPI document description (optional)',
-  '  --help                 Show this help message',
+  '  --title <value>                   OpenAPI document title (optional)',
+  '  --version <value>                 OpenAPI document version (optional)',
+  '  --description <value>             OpenAPI document description (optional)',
+  '  --app-dir <value>                 App Router API directory (default: src/app/api)',
+  '  --output <value>                  OpenAPI output path (default: public/openapi.json)',
+  '  --strict-missing-contracts        Exit with code 1 when routes are missing contracts',
+  '  --help                            Show this help message',
 ].join('\n');
 
 export type CliOptions = {
+  title?: string;
+  version?: string;
+  description?: string;
+  appDir?: string;
+  output?: string;
+  strictMissingContracts?: boolean;
+};
+
+type ResolvedCliOptions = {
   title: string;
   version: string;
-  description?: string;
+  description: string;
+  appDir?: string;
+  output?: string;
+  strictMissingContracts: boolean;
 };
 
 type ParsedCliArguments =
@@ -32,6 +48,22 @@ type Writable = {
   write: (chunk: string) => unknown;
 };
 
+type CliGenerateResult = {
+  spec: unknown;
+  coverage: {
+    warnings: Array<string>;
+    skippedRoutes: Array<string>;
+    orphanContracts: Array<string>;
+    documentedRoutes: Array<string>;
+  };
+};
+
+type PackageInfo = {
+  name?: string;
+  version?: string;
+  description?: string;
+};
+
 export class CliUsageError extends Error {}
 
 const readValue = (flag: string, value: string | undefined) => {
@@ -43,7 +75,7 @@ const readValue = (flag: string, value: string | undefined) => {
 };
 
 export const parseCliArguments = (argv: Array<string>): ParsedCliArguments => {
-  const options: Partial<CliOptions> = {};
+  const options: CliOptions = {};
 
   for (let index = 0; index < argv.length; index++) {
     const argument = argv[index];
@@ -67,40 +99,59 @@ export const parseCliArguments = (argv: Array<string>): ParsedCliArguments => {
         index++;
         break;
       }
+      case '--app-dir': {
+        options.appDir = readValue('--app-dir', argv[index + 1]);
+        index++;
+        break;
+      }
+      case '--output': {
+        options.output = readValue('--output', argv[index + 1]);
+        index++;
+        break;
+      }
+      case '--strict-missing-contracts': {
+        options.strictMissingContracts = true;
+        break;
+      }
       default: {
         throw new CliUsageError(`Unknown argument: ${argument}.`);
       }
     }
   }
 
-  if (options.title == null) {
-    throw new CliUsageError('Missing required argument: --title.');
-  }
-
-  if (options.version == null) {
-    throw new CliUsageError('Missing required argument: --version.');
-  }
-
   return {
     kind: 'run',
-    options: {
-      title: options.title,
-      version: options.version,
-      description: options.description,
-    },
+    options,
   };
 };
+
+const resolveCliOptions = ({
+  parsed,
+  packageInfo,
+}: {
+  parsed: CliOptions;
+  packageInfo: PackageInfo;
+}): ResolvedCliOptions => ({
+  title: parsed.title ?? packageInfo.name ?? 'API',
+  version: parsed.version ?? packageInfo.version ?? '0.1.0',
+  description: parsed.description ?? packageInfo.description ?? '',
+  appDir: parsed.appDir,
+  output: parsed.output,
+  strictMissingContracts: parsed.strictMissingContracts ?? false,
+});
 
 export const runCli = async ({
   argv,
   stdout,
   stderr,
   generate,
+  resolvePackageInfo,
 }: {
   argv?: Array<string>;
   stdout?: Writable;
   stderr?: Writable;
-  generate?: (options: CliOptions) => Promise<unknown>;
+  generate?: (options: ResolvedCliOptions) => Promise<CliGenerateResult>;
+  resolvePackageInfo?: () => PackageInfo;
 } = {}): Promise<number> => {
   const parsed = (() => {
     try {
@@ -127,7 +178,27 @@ export const runCli = async ({
   }
 
   try {
-    await (generate ?? generateOpenapiSpecInternal)(parsed.options);
+    const options = resolveCliOptions({
+      parsed: parsed.options,
+      packageInfo: (resolvePackageInfo ?? resolvePackageInfoInternal)(),
+    });
+
+    const result = await (generate ?? generateOpenapiSpecInternal)(options);
+
+    for (const warning of result.coverage.warnings) {
+      (stderr ?? process.stderr).write(`openapi-next: warning: ${warning}\n`);
+    }
+
+    if (
+      options.strictMissingContracts &&
+      result.coverage.skippedRoutes.length > 0
+    ) {
+      (stderr ?? process.stderr).write(
+        'openapi-next: strict-missing-contracts failed due to routes missing contracts\n',
+      );
+      return 1;
+    }
+
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

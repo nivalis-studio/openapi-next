@@ -247,4 +247,92 @@ describe('executeRoute', () => {
     expect(body.error.code).toBe('INTERNAL_ERROR');
     expect(JSON.stringify(body)).not.toContain('do not leak this');
   });
+
+  it('supports next-style bound handlers with request context and validated input', async () => {
+    const request = new Request('https://api.test/items?page=2', {
+      method: 'GET',
+    });
+    const context = { params: Promise.resolve({ tenant: 'eu' }) };
+    let didReceiveSameRequest = false;
+    let didReceiveSameContext = false;
+
+    const response = await executeRoute(
+      {
+        method: 'GET',
+        operationId: 'bound-handler-input',
+        input: {
+          query: z.object({ page: z.coerce.number().int().min(1) }),
+        },
+        responses: {
+          200: {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: z.object({ echo: z.string() }),
+              },
+            },
+          },
+        },
+      },
+      (receivedRequest, receivedContext, input) => {
+        didReceiveSameRequest = receivedRequest === request;
+        didReceiveSameContext = receivedContext === context;
+
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: { echo: `${receivedRequest.method}:${input.query.page}` },
+        };
+      },
+      request,
+      context,
+    );
+
+    expect(didReceiveSameRequest).toBe(true);
+    expect(didReceiveSameContext).toBe(true);
+    expect(response.status).toBe(OK_STATUS);
+    expect(await response.json()).toEqual({ echo: 'GET:2' });
+  });
+
+  it('does not call next-style handler when input validation fails', async () => {
+    let wasHandlerCalled = false;
+
+    const response = await executeRoute(
+      {
+        method: 'GET',
+        operationId: 'bound-handler-invalid-query',
+        input: {
+          query: z.object({ page: z.coerce.number().int().min(1) }),
+        },
+        responses: {
+          200: {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: z.object({ ok: z.boolean() }),
+              },
+            },
+          },
+        },
+      },
+      () => {
+        wasHandlerCalled = true;
+
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: { ok: true },
+        };
+      },
+      new Request('https://api.test/items?page=not-a-number', {
+        method: 'GET',
+      }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(wasHandlerCalled).toBe(false);
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe('INVALID_QUERY');
+  });
 });

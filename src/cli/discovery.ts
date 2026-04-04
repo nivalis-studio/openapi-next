@@ -4,7 +4,8 @@ import { pathToFileURL } from 'node:url';
 
 const ROUTE_FILE_PATTERN = /route\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const ROUTE_SUFFIX_PATTERN = /\/route\.(ts|tsx|js|jsx|mjs|cjs)$/;
-const CONTRACT_SUFFIX_PATTERN = /\/(\w+\.)?contract\.(ts|tsx|js|jsx|mjs|cjs)$/;
+const CONTRACT_SUFFIX_PATTERN =
+  /\/(?:[^/]+\.)?contract\.(ts|tsx|js|jsx|mjs|cjs)$/;
 const ROUTE_GROUP_SEGMENT_PATTERN = /\/?\([^)]*\)/g;
 
 // Pattern for contract files (contract.ts or *.contract.ts)

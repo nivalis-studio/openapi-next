@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import { z } from 'zod';
-import { defineRoute } from './define-route';
+import { bindContract, defineRouteContract } from './define-route';
 
 const OK_STATUS = 200;
 
-describe('defineRoute', () => {
-  it('returns route metadata and executes the route handler', async () => {
-    const route = defineRoute({
+describe('bindContract', () => {
+  it('binds a contract to a Next-style handler', async () => {
+    const contract = defineRouteContract({
       method: 'GET',
       operationId: 'listUsers',
       input: {
@@ -17,24 +17,23 @@ describe('defineRoute', () => {
           description: 'ok',
           content: {
             'application/json': {
-              schema: z.object({ success: z.literal(true) }),
+              schema: z.object({ success: z.boolean() }),
             },
           },
         },
       },
-      handler: async () => ({
-        status: 200,
-        contentType: 'application/json',
-        body: { success: true },
-      }),
     });
 
-    expect(typeof route.next).toBe('function');
-    expect(route._route.operationId).toBe('listUsers');
-    expect(route._route.method).toBe('GET');
+    const GET = bindContract(contract, async (_request, _context, input) => ({
+      status: 200,
+      contentType: 'application/json',
+      body: { success: input.query.page >= 1 },
+    }));
 
-    const response = await route.next(
-      new Request('https://example.com/users'),
+    expect(typeof GET).toBe('function');
+
+    const response = await GET(
+      new Request('https://example.com/users?page=1'),
       {
         params: Promise.resolve({}),
       },

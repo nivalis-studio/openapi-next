@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { z } from 'zod';
-import { defineRoute } from '../core/define-route';
+import { bindContract, defineRouteContract } from '../core/define-route';
 import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 
 const OK_STATUS = 200;
 
 describe('next adapter', () => {
-  it('executes route through defineRoute.next', async () => {
-    const route = defineRoute({
+  it('executes route through bindContract', async () => {
+    const contract = defineRouteContract({
       method: 'GET',
       operationId: 'health',
       responses: {
@@ -20,14 +20,15 @@ describe('next adapter', () => {
           },
         },
       },
-      handler: async () => ({
-        status: 200,
-        contentType: 'application/json',
-        body: { ok: true },
-      }),
     });
 
-    const response = await route.next(
+    const GET = bindContract(contract, async () => ({
+      status: 200,
+      contentType: 'application/json',
+      body: { ok: true as const },
+    }));
+
+    const response = await GET(
       new Request('https://api.test/health', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
@@ -36,8 +37,49 @@ describe('next adapter', () => {
     expect(await response.json()).toEqual({ ok: true });
   });
 
+  it('passes real request and context to the bound handler', async () => {
+    const contract = defineRouteContract({
+      method: 'GET',
+      operationId: 'echoRequestContext',
+      input: {
+        params: z.object({ region: z.string() }),
+        query: z.object({ ping: z.string() }),
+      },
+      responses: {
+        200: {
+          description: 'ok',
+          content: {
+            'application/json': {
+              schema: z.object({ echo: z.string() }),
+            },
+          },
+        },
+      },
+    });
+
+    const GET = bindContract(contract, async (request, context, input) => {
+      const params = await context.params;
+      const region = z.object({ region: z.string() }).parse(params).region;
+
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: {
+          echo: `${new URL(request.url).hostname}:${region}:${input.query.ping}`,
+        },
+      };
+    });
+
+    const response = await GET(new Request('https://api.test/health?ping=ok'), {
+      params: Promise.resolve({ region: 'eu' }),
+    });
+
+    expect(response.status).toBe(OK_STATUS);
+    expect(await response.json()).toEqual({ echo: 'api.test:eu:ok' });
+  });
+
   it('exposes _generateOpenApi compatibility helper on the handler', () => {
-    const route = defineRoute({
+    const contract = defineRouteContract({
       method: 'GET',
       operationId: 'health',
       responses: {
@@ -50,16 +92,17 @@ describe('next adapter', () => {
           },
         },
       },
-      handler: async () => ({
-        status: 200,
-        contentType: 'application/json',
-        body: { ok: true },
-      }),
     });
 
-    expect(typeof route.next._generateOpenApi).toBe('function');
+    const GET = bindContract(contract, async () => ({
+      status: 200,
+      contentType: 'application/json',
+      body: { ok: true as const },
+    }));
 
-    const openApiData = route.next._generateOpenApi('/health');
+    expect(typeof GET._generateOpenApi).toBe('function');
+
+    const openApiData = GET._generateOpenApi('/health');
 
     expect(openApiData.paths).toBeDefined();
     expect(openApiData.paths?.['/health']?.get).toBeDefined();
@@ -68,7 +111,7 @@ describe('next adapter', () => {
   it('forwards zodToJsonOptions through _generateOpenApi compatibility helper', () => {
     const sharedSchema = z.object({ value: z.string() });
 
-    const route = defineRoute({
+    const contract = defineRouteContract({
       method: 'GET',
       operationId: 'health',
       responses: {
@@ -84,14 +127,18 @@ describe('next adapter', () => {
           },
         },
       },
-      handler: async () => ({
-        status: 200,
-        contentType: 'application/json',
-        body: { ok: true },
-      }),
     });
 
-    const openApiData = route.next._generateOpenApi('/health', {
+    const GET = bindContract(contract, async () => ({
+      status: 200,
+      contentType: 'application/json',
+      body: {
+        first: { value: 'a' },
+        second: { value: 'b' },
+      },
+    }));
+
+    const openApiData = GET._generateOpenApi('/health', {
       reused: 'inline',
     });
 

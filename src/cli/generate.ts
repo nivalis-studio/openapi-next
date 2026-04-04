@@ -3,7 +3,7 @@ import path from 'node:path';
 import { format } from 'prettier';
 import { buildDocument } from '../core/openapi/build-document';
 import { toRoutePath } from './discovery';
-import type { HttpMethod, RouteDefinition } from '../core/contract';
+import type { HttpMethod, RouteContract } from '../core/contract';
 
 const HTTP_METHODS = new Set<HttpMethod>([
   'GET',
@@ -15,69 +15,57 @@ const HTTP_METHODS = new Set<HttpMethod>([
   'HEAD',
 ]);
 
-const isRouteExport = (
-  value: unknown,
-): value is { _route: RouteDefinition } => {
-  if (
-    (typeof value !== 'object' && typeof value !== 'function') ||
-    value === null
-  ) {
+const isRouteContract = (value: unknown): value is RouteContract => {
+  if (typeof value !== 'object' || value == null) {
     return false;
   }
 
-  return '_route' in value;
+  if (!('method' in value)) {
+    return false;
+  }
+
+  if (!('operationId' in value)) {
+    return false;
+  }
+
+  if (!('responses' in value)) {
+    return false;
+  }
+
+  if (typeof value.operationId !== 'string') {
+    return false;
+  }
+
+  return HTTP_METHODS.has(value.method as HttpMethod);
 };
 
-export const generateFromRoutes = async ({
+export const generateFromContracts = async ({
   info,
-  routeModules,
+  contractModules,
   appRouterPath,
   outputPath,
 }: {
   info: { title: string; description?: string; version: string };
-  routeModules: Array<{ filePath: string; exports: Record<string, unknown> }>;
+  contractModules: Array<{
+    filePath: string;
+    exports: Record<string, unknown>;
+  }>;
   appRouterPath?: string;
   outputPath?: string;
 }) => {
   const basePath = appRouterPath ?? path.join(process.cwd(), 'src/app/api');
 
-  const routes = routeModules.flatMap(routeModule =>
-    Object.entries(routeModule.exports).flatMap(([exportName, exportValue]) => {
-      // Skip non-route exports
-      if (!isRouteExport(exportValue)) {
-        return [];
-      }
-
-      // Handle HTTP method exports (traditional route.ts files)
-      if (HTTP_METHODS.has(exportName as HttpMethod)) {
-        if (exportValue._route.method !== exportName) {
-          throw new Error(
-            `Route export method mismatch: ${routeModule.filePath} (export: ${exportName}, _route.method: ${exportValue._route.method})`,
-          );
-        }
-
-        return [
-          {
-            routePath: toRoutePath(routeModule.filePath, basePath),
-            route: exportValue._route,
-          },
-        ];
-      }
-
-      // Handle contract file exports (contract.ts files)
-      // These export a route object with _route property
-      // Use the HTTP method from the route definition
-      if (HTTP_METHODS.has(exportValue._route.method)) {
-        return [
-          {
-            routePath: toRoutePath(routeModule.filePath, basePath),
-            route: exportValue._route,
-          },
-        ];
-      }
-
-      return [];
-    }),
+  const routes = contractModules.flatMap(contractModule =>
+    Object.values(contractModule.exports).flatMap(exportValue =>
+      isRouteContract(exportValue)
+        ? [
+            {
+              routePath: toRoutePath(contractModule.filePath, basePath),
+              route: exportValue,
+            },
+          ]
+        : [],
+    ),
   );
 
   const spec = buildDocument({

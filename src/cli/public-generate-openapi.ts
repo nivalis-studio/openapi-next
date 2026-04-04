@@ -1,41 +1,73 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { discoverContractFiles, toImportUrl } from './discovery';
-import { generateFromRoutes } from './generate';
+import {
+  discoverContractFiles,
+  discoverRouteFiles,
+  toImportUrl,
+} from './discovery';
+import { generateFromContracts } from './generate';
+import { buildCoverageReport } from './matching';
+import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 
-export const generateOpenapiSpec = async (info: {
+type OpenapiInfo = {
   title: string;
   description?: string;
   version: string;
-}) => {
-  const appRouterPath = path.join(process.cwd(), 'src/app/api');
+  appDir?: string;
+  output?: string;
+};
+
+export type GenerateOpenapiCoverageResult = {
+  spec: OpenAPI.Document;
+  coverage: ReturnType<typeof buildCoverageReport>;
+};
+
+export const generateOpenapiSpecWithCoverage = async (
+  info: OpenapiInfo,
+): Promise<GenerateOpenapiCoverageResult> => {
+  const appRouterPath = path.resolve(
+    process.cwd(),
+    info.appDir ?? 'src/app/api',
+  );
 
   if (!existsSync(appRouterPath)) {
     throw new Error('No API routes found.');
   }
 
-  // Discover contract files (*.contract.ts) instead of route files
-  // Contract files contain route definitions without handlers, making them
-  // safe to import during build time without side effects
-  const files = discoverContractFiles(appRouterPath);
+  const routeFiles = discoverRouteFiles(appRouterPath);
+  const contractFiles = discoverContractFiles(appRouterPath);
+  const coverage = buildCoverageReport({
+    appRouterPath,
+    routeFiles,
+    contractFiles,
+  });
 
-  if (files.length === 0) {
-    throw new Error(
-      'No contract files found. Create *.contract.ts files alongside your route.ts files.',
-    );
-  }
-
-  const routeModules = await Promise.all(
-    files.map(async filePath => ({
+  const contractModules = await Promise.all(
+    contractFiles.map(async filePath => ({
       filePath,
       exports: (await import(toImportUrl(filePath))) as Record<string, unknown>,
     })),
   );
 
-  return generateFromRoutes({
+  const spec = await generateFromContracts({
     info,
-    routeModules,
+    contractModules,
     appRouterPath,
-    outputPath: path.join(process.cwd(), 'public/openapi.json'),
+    outputPath: path.resolve(
+      process.cwd(),
+      info.output ?? 'public/openapi.json',
+    ),
   });
+
+  return {
+    spec,
+    coverage,
+  };
+};
+
+export const generateOpenapiSpec = async (
+  info: OpenapiInfo,
+): Promise<OpenAPI.Document> => {
+  const result = await generateOpenapiSpecWithCoverage(info);
+  return result.spec;
 };

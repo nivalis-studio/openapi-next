@@ -2,7 +2,13 @@ import { Effect } from 'effect';
 import { errorResponseBody, internalErrorBody } from '../errors/error-shape';
 import { validateInput } from './validate-input';
 import { validateOutput } from './validate-output';
-import type { RouteDefinition, RouteHeaders } from '../contract';
+import type {
+  BoundRouteHandler,
+  LegacyRouteDefinition,
+  RouteContract,
+  RouteHeaders,
+  RouteInputData,
+} from '../contract';
 import type { ErrorCode } from '../errors/error-codes';
 
 const asErrorCode = (code: string): ErrorCode => code as ErrorCode;
@@ -58,14 +64,15 @@ type ExecutionError = InputValidationError | HandlerError;
 /**
  * Internal Effect-based route execution.
  */
-const executeRouteEffect = (
-  route: RouteDefinition,
+const executeRouteEffect = <TContract extends RouteContract>(
+  route: TContract,
+  routeHandler: BoundRouteHandler<TContract>,
   request: Request,
-  paramsPromise: Promise<unknown>,
+  context: { params: Promise<unknown> },
 ): Effect.Effect<Response, never> =>
   Effect.gen(function* () {
     const input = yield* Effect.tryPromise({
-      try: () => validateInput(route, request, paramsPromise),
+      try: () => validateInput(route, request, context.params),
       catch: (error): ExecutionError => ({
         _tag: 'InputValidationError',
         error,
@@ -84,7 +91,14 @@ const executeRouteEffect = (
     }
 
     const result = yield* Effect.tryPromise({
-      try: () => Promise.resolve(route.handler(input.data)),
+      try: () =>
+        Promise.resolve(
+          routeHandler(
+            request,
+            context,
+            input.data as RouteInputData<TContract>,
+          ),
+        ),
       catch: (error): ExecutionError => ({
         _tag: 'HandlerError',
         error,
@@ -132,11 +146,50 @@ const executeRouteEffect = (
  * Execute a route definition with the given request.
  * Public API remains unchanged - returns Promise<Response>.
  */
-export const executeRoute = (
-  route: RouteDefinition,
+const runRoute = <TContract extends RouteContract>(
+  route: TContract,
+  routeHandler: BoundRouteHandler<TContract>,
   request: Request,
-  paramsPromise: Promise<unknown>,
+  context: { params: Promise<unknown> },
 ): Promise<Response> => {
-  const effect = executeRouteEffect(route, request, paramsPromise);
+  const effect = executeRouteEffect(route, routeHandler, request, context);
   return Effect.runPromise(effect);
 };
+
+export function executeRoute<TContract extends RouteContract>(
+  route: TContract,
+  routeHandler: BoundRouteHandler<TContract>,
+  request: Request,
+  context: { params: Promise<unknown> },
+): Promise<Response>;
+export function executeRoute(
+  route: LegacyRouteDefinition,
+  request: Request,
+  paramsPromise: Promise<unknown>,
+): Promise<Response>;
+export function executeRoute(
+  route: RouteContract | LegacyRouteDefinition,
+  routeHandlerOrRequest: unknown,
+  requestOrParamsPromise: Request | Promise<unknown>,
+  context?: { params: Promise<unknown> },
+): Promise<Response> {
+  if (typeof routeHandlerOrRequest === 'function') {
+    return runRoute(
+      route,
+      routeHandlerOrRequest as BoundRouteHandler<RouteContract>,
+      requestOrParamsPromise as Request,
+      context ?? { params: Promise.resolve({}) },
+    );
+  }
+
+  const legacyRoute = route as LegacyRouteDefinition;
+  const request = routeHandlerOrRequest as Request;
+  const paramsPromise = requestOrParamsPromise as Promise<unknown>;
+
+  return runRoute(
+    legacyRoute,
+    async (_request, _context, input) => legacyRoute.handler(input),
+    request,
+    { params: paramsPromise },
+  );
+}

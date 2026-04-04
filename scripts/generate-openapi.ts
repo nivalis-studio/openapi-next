@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -11,37 +12,48 @@ import { generateOpenapiSpec } from '../src/cli/public-generate-openapi';
 const repoRoot = process.cwd();
 const fixtureRoot = mkdtempSync(path.join(repoRoot, '.openapi-smoke-'));
 
-const fixtureRoutePath = path.join(fixtureRoot, 'src/app/api/health/route.ts');
+const fixtureApiDir = path.join(fixtureRoot, 'src/app/api/health');
+const fixtureRoutePath = path.join(fixtureApiDir, 'route.ts');
+const fixtureContractPath = path.join(fixtureApiDir, 'contract.ts');
 
-const fixtureRouteContents = `import { z } from 'zod';
+mkdirSync(fixtureApiDir, { recursive: true });
+mkdirSync(path.join(fixtureRoot, 'node_modules'), { recursive: true });
+symlinkSync(
+  path.join(repoRoot, 'node_modules/zod'),
+  path.join(fixtureRoot, 'node_modules/zod'),
+  'dir',
+);
 
-const GET = Object.assign(async () => new Response('ok'), {
-  _route: {
-    method: 'GET' as const,
-    operationId: 'openapiSmokeHealthCheck',
-    responses: {
-      200: {
-        description: 'Smoke check response',
-        content: {
-          'application/json': {
-            schema: z.object({ healthy: z.literal(true) }),
-          },
-        },
-      },
-    },
-    handler: () => ({
-      status: 200,
-      contentType: 'application/json',
-      body: { healthy: true },
-    }),
-  },
-});
+writeFileSync(
+  fixtureRoutePath,
+  "export const GET = async () => new Response('ok');\n",
+  'utf8',
+);
 
-export { GET };
-`;
-
-mkdirSync(path.dirname(fixtureRoutePath), { recursive: true });
-writeFileSync(fixtureRoutePath, fixtureRouteContents, 'utf8');
+writeFileSync(
+  fixtureContractPath,
+  [
+    `import { defineRouteContract } from '${path.join(repoRoot, 'src/core/define-route.ts')}';`,
+    "import { z } from 'zod';",
+    '',
+    'export const healthContract = defineRouteContract({',
+    "  method: 'GET',",
+    "  operationId: 'openapiSmokeHealthCheck',",
+    '  responses: {',
+    '    200: {',
+    "      description: 'Smoke check response',",
+    '      content: {',
+    "        'application/json': {",
+    '          schema: z.object({ healthy: z.literal(true) }),',
+    '        },',
+    '      },',
+    '    },',
+    '  },',
+    '});',
+    '',
+  ].join('\n'),
+  'utf8',
+);
 
 try {
   process.chdir(fixtureRoot);

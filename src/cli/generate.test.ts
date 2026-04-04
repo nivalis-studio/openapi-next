@@ -3,60 +3,35 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod';
-import { generateFromRoutes } from './generate';
+import { defineRouteContract } from '../core/define-route';
+import { generateFromContracts } from './generate';
 
-const createRouteDefinition = () => ({
-  method: 'GET' as const,
-  operationId: 'listUsers',
-  responses: {
-    200: {
-      description: 'ok',
-      content: {
-        'application/json': {
-          schema: z.object({ success: z.boolean() }),
+const createContract = () =>
+  defineRouteContract({
+    method: 'GET' as const,
+    operationId: 'listUsers',
+    responses: {
+      200: {
+        description: 'ok',
+        content: {
+          'application/json': {
+            schema: z.object({ success: z.boolean() }),
+          },
         },
       },
     },
-  },
-  handler: () => ({
-    status: 200,
-    contentType: 'application/json',
-    body: { success: true },
-  }),
-});
-
-describe('generateFromRoutes', () => {
-  it('throws when route export is missing normalized metadata', async () => {
-    await expect(
-      generateFromRoutes({
-        info: { title: 'x', description: 'x', version: '1.0.0' },
-        appRouterPath: '/tmp/app/api',
-        routeModules: [
-          {
-            filePath: '/tmp/route.ts',
-            exports: {
-              GET: async () => new Response('ok'),
-            },
-          },
-        ],
-      }),
-    ).rejects.toThrow('Route export missing _route metadata');
   });
 
-  it('builds a path item from function exports with route metadata', async () => {
-    const routeDefinition = createRouteDefinition();
-    const nextHandler = Object.assign(async () => new Response('ok'), {
-      _route: routeDefinition,
-    });
-
-    const spec = await generateFromRoutes({
+describe('generateFromContracts', () => {
+  it('builds a path item from plain contract exports', async () => {
+    const spec = await generateFromContracts({
       info: { title: 'x', description: 'x', version: '1.0.0' },
       appRouterPath: '/tmp/app/api',
-      routeModules: [
+      contractModules: [
         {
-          filePath: '/tmp/app/api/users/route.ts',
+          filePath: '/tmp/app/api/users/contract.ts',
           exports: {
-            GET: nextHandler,
+            listUsersContract: createContract(),
           },
         },
       ],
@@ -69,30 +44,21 @@ describe('generateFromRoutes', () => {
     expect(usersPath?.get?.operationId).toBe('listUsers');
   });
 
-  it('throws when export method does not match _route.method', async () => {
-    const postRouteDefinition = {
-      ...createRouteDefinition(),
-      method: 'POST' as const,
-    };
-
-    await expect(
-      generateFromRoutes({
-        info: { title: 'x', description: 'x', version: '1.0.0' },
-        appRouterPath: '/tmp/app/api',
-        routeModules: [
-          {
-            filePath: '/tmp/app/api/users/route.ts',
-            exports: {
-              GET: {
-                _route: postRouteDefinition,
-              },
-            },
+  it('ignores non-contract exports', async () => {
+    const spec = await generateFromContracts({
+      info: { title: 'x', description: 'x', version: '1.0.0' },
+      appRouterPath: '/tmp/app/api',
+      contractModules: [
+        {
+          filePath: '/tmp/app/api/users/contract.ts',
+          exports: {
+            notAContract: () => 'noop',
           },
-        ],
-      }),
-    ).rejects.toThrow(
-      'Route export method mismatch: /tmp/app/api/users/route.ts (export: GET, _route.method: POST)',
-    );
+        },
+      ],
+    });
+
+    expect(spec.paths).toEqual({});
   });
 
   it('creates parent directories for outputPath before writing the spec', async () => {
@@ -102,17 +68,15 @@ describe('generateFromRoutes', () => {
     const outputPath = path.join(tempDirectory, 'nested', 'openapi.json');
 
     try {
-      await generateFromRoutes({
+      await generateFromContracts({
         info: { title: 'x', description: 'x', version: '1.0.0' },
         appRouterPath: '/tmp/app/api',
         outputPath,
-        routeModules: [
+        contractModules: [
           {
-            filePath: '/tmp/app/api/users/route.ts',
+            filePath: '/tmp/app/api/users/contract.ts',
             exports: {
-              GET: {
-                _route: createRouteDefinition(),
-              },
+              listUsersContract: createContract(),
             },
           },
         ],

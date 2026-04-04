@@ -21,6 +21,11 @@ describe('parseCliArguments', () => {
       '1.2.3',
       '--description',
       'Demo description',
+      '--app-dir',
+      'src/app/api/internal',
+      '--output',
+      'public/custom-openapi.json',
+      '--strict-missing-contracts',
     ]);
 
     expect(parsed).toEqual({
@@ -29,6 +34,9 @@ describe('parseCliArguments', () => {
         title: 'Demo API',
         version: '1.2.3',
         description: 'Demo description',
+        appDir: 'src/app/api/internal',
+        output: 'public/custom-openapi.json',
+        strictMissingContracts: true,
       },
     });
   });
@@ -39,27 +47,15 @@ describe('parseCliArguments', () => {
     expect(parsed).toEqual({ kind: 'help' });
   });
 
-  it('throws for missing required title', () => {
-    expect(() => parseCliArguments(['--version', '1.0.0'])).toThrow(
-      new CliUsageError('Missing required argument: --title.'),
-    );
-  });
-
-  it('throws for missing required version', () => {
-    expect(() => parseCliArguments(['--title', 'Demo API'])).toThrow(
-      new CliUsageError('Missing required argument: --version.'),
-    );
-  });
-
   it('throws for unknown arguments', () => {
-    expect(() =>
-      parseCliArguments(['--title', 'Demo API', '--version', '1.0.0', '--x']),
-    ).toThrow(new CliUsageError('Unknown argument: --x.'));
+    expect(() => parseCliArguments(['--x'])).toThrow(
+      new CliUsageError('Unknown argument: --x.'),
+    );
   });
 
   it('throws when required flag value is missing', () => {
-    expect(() => parseCliArguments(['--title', '--version', '1.0.0'])).toThrow(
-      new CliUsageError('Missing value for --title.'),
+    expect(() => parseCliArguments(['--output'])).toThrow(
+      new CliUsageError('Missing value for --output.'),
     );
   });
 });
@@ -76,7 +72,19 @@ describe('runCli', () => {
       stderr,
       generate: () => {
         wasGenerateCalled = true;
-        return Promise.resolve(undefined);
+        return Promise.resolve({
+          spec: {
+            openapi: '3.1.0',
+            info: { title: 'x', version: '1' },
+            paths: {},
+          },
+          coverage: {
+            warnings: [],
+            skippedRoutes: [],
+            orphanContracts: [],
+            documentedRoutes: [],
+          },
+        });
       },
     });
 
@@ -86,47 +94,149 @@ describe('runCli', () => {
     expect(wasGenerateCalled).toBe(false);
   });
 
-  it('returns 0 and calls generate when args are valid', async () => {
-    const stdout = createRecorder();
-    const stderr = createRecorder();
+  it('runs with no flags using package metadata defaults', async () => {
     const calls: Array<unknown> = [];
 
     const exitCode = await runCli({
-      argv: ['--title', 'Demo API', '--version', '2.0.0'],
-      stdout,
-      stderr,
+      argv: [],
+      resolvePackageInfo: () => ({
+        name: '@acme/api',
+        version: '9.9.9',
+        description: 'Acme API',
+      }),
       generate: options => {
         calls.push(options);
-        return Promise.resolve(undefined);
+        return Promise.resolve({
+          spec: {
+            openapi: '3.1.0',
+            info: { title: 'x', version: '1' },
+            paths: {},
+          },
+          coverage: {
+            warnings: [],
+            skippedRoutes: [],
+            orphanContracts: [],
+            documentedRoutes: [],
+          },
+        });
       },
     });
 
     expect(exitCode).toBe(0);
-    expect(calls).toEqual([{ title: 'Demo API', version: '2.0.0' }]);
-    expect(stdout.output()).toBe('');
-    expect(stderr.output()).toBe('');
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      title: '@acme/api',
+      version: '9.9.9',
+      description: 'Acme API',
+      strictMissingContracts: false,
+    });
   });
 
-  it('returns 1 and prints usage when parse fails', async () => {
+  it('falls back to hardcoded defaults when package metadata is missing', async () => {
+    const calls: Array<unknown> = [];
+
+    const exitCode = await runCli({
+      argv: [],
+      resolvePackageInfo: () => ({}),
+      generate: options => {
+        calls.push(options);
+        return Promise.resolve({
+          spec: {
+            openapi: '3.1.0',
+            info: { title: 'x', version: '1' },
+            paths: {},
+          },
+          coverage: {
+            warnings: [],
+            skippedRoutes: [],
+            orphanContracts: [],
+            documentedRoutes: [],
+          },
+        });
+      },
+    });
+
+    expect(exitCode).toBe(0);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      title: 'API',
+      version: '0.1.0',
+      description: '',
+      strictMissingContracts: false,
+    });
+  });
+
+  it('returns 1 in strict mode when missing-contract warnings are present', async () => {
     const stderr = createRecorder();
 
     const exitCode = await runCli({
-      argv: ['--title', 'Demo API'],
+      argv: ['--strict-missing-contracts'],
       stderr,
-      generate: () => Promise.reject(new Error('should not run')),
+      resolvePackageInfo: () => ({
+        name: '@acme/api',
+        version: '9.9.9',
+      }),
+      generate: () =>
+        Promise.resolve({
+          spec: {
+            openapi: '3.1.0',
+            info: { title: 'x', version: '1' },
+            paths: {},
+          },
+          coverage: {
+            warnings: [
+              'Route /health skipped from OpenAPI (no contract file).',
+            ],
+            skippedRoutes: ['/health'],
+            orphanContracts: [],
+            documentedRoutes: ['/users'],
+          },
+        }),
     });
 
     expect(exitCode).toBe(1);
-    expect(stderr.output()).toContain('Missing required argument: --version.');
-    expect(stderr.output()).toContain(CLI_USAGE);
+    expect(stderr.output()).toContain('strict-missing-contracts');
+  });
+
+  it('does not fail strict mode for orphan-contract warnings only', async () => {
+    const stderr = createRecorder();
+
+    const exitCode = await runCli({
+      argv: ['--strict-missing-contracts'],
+      stderr,
+      resolvePackageInfo: () => ({
+        name: '@acme/api',
+        version: '9.9.9',
+      }),
+      generate: () =>
+        Promise.resolve({
+          spec: {
+            openapi: '3.1.0',
+            info: { title: 'x', version: '1' },
+            paths: {},
+          },
+          coverage: {
+            warnings: ['Contract /legacy has no sibling route file.'],
+            skippedRoutes: [],
+            orphanContracts: ['/legacy'],
+            documentedRoutes: ['/legacy'],
+          },
+        }),
+    });
+
+    expect(exitCode).toBe(0);
   });
 
   it('returns 1 and prints stderr when generation fails', async () => {
     const stderr = createRecorder();
 
     const exitCode = await runCli({
-      argv: ['--title', 'Demo API', '--version', '2.0.0'],
+      argv: [],
       stderr,
+      resolvePackageInfo: () => ({
+        name: '@acme/api',
+        version: '9.9.9',
+      }),
       generate: () => Promise.reject(new Error('boom')),
     });
 

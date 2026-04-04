@@ -1,13 +1,14 @@
 # @nivalis/openapi-next
 
-Typed route handlers for the Next.js App Router with strict request and response validation plus OpenAPI 3.1 generation.
+Contract-first route tooling for the Next.js App Router with strict Zod validation and OpenAPI 3.1 generation.
 
 ## Features
 
-- Define routes with a single `defineRoute` contract used by runtime and OpenAPI generation
-- Validate params, query, body, and response payloads with Zod
-- Export Next.js handlers directly with `route.next`
-- Generate an OpenAPI 3.1 document from `src/app/api/**/route.*` files
+- Define pure route contracts with `defineRouteContract(...)`
+- Bind Next.js handlers with `bindContract(contract, handler)`
+- Validate params, query, body, and response payloads at runtime
+- Generate OpenAPI 3.1 from `src/app/api` contract files
+- Run CLI with zero required flags (`openapi-next`)
 
 ## Installation
 
@@ -17,16 +18,16 @@ bun add @nivalis/openapi-next
 pnpm add @nivalis/openapi-next
 ```
 
-> This package declares `next` and `typescript` as peer dependencies. Use the versions already installed in your application.
+> This package declares `next` and `typescript` as peer dependencies. Use versions already installed in your app.
 
-## Creating a typed route
+## Creating a contract-backed route
 
 ```ts
-// src/app/api/users/route.ts
-import { defineRoute } from '@nivalis/openapi-next';
+// src/app/api/users/contract.ts
+import { defineRouteContract } from '@nivalis/openapi-next';
 import { z } from 'zod';
 
-const listUsers = defineRoute({
+export const listUsersContract = defineRouteContract({
   method: 'GET',
   operationId: 'listUsers',
   input: {
@@ -50,49 +51,61 @@ const listUsers = defineRoute({
       },
     },
   },
-  handler: async ({ query }) => ({
+});
+```
+
+```ts
+// src/app/api/users/route.ts
+import { bindContract } from '@nivalis/openapi-next';
+import { listUsersContract } from './contract';
+
+export const GET = bindContract(
+  listUsersContract,
+  async (_request, _context, input) => ({
     status: 200,
     contentType: 'application/json',
     body: {
       success: true,
-      items: await fetchUsers(query.page),
+      items: await fetchUsers(input.query.page),
     },
   }),
-});
-
-export const GET = listUsers.next;
+);
 ```
 
-## Generating an OpenAPI spec
+## Generating OpenAPI
 
-Call `generateOpenapiSpec` from a script or task runner. It scans `src/app/api` and writes `public/openapi.json`.
+Use the CLI directly:
 
-> CLI generation commands in v3 expect the Bun runtime (for example, `bunx` or `bun run`) so execution matches TypeScript route discovery behavior.
+```bash
+openapi-next
+```
+
+This command resolves metadata in this order:
+
+1. CLI flags (`--title`, `--version`, `--description`)
+2. `package.json` (`name`, `version`, `description`)
+3. Fallback defaults (`API`, `0.1.0`, empty description)
+
+Useful options:
+
+- `--app-dir <path>` (default `src/app/api`)
+- `--output <path>` (default `public/openapi.json`)
+- `--strict-missing-contracts`
+
+You can also generate from a script:
 
 ```ts
-// scripts/generate-openapi.ts
 import { generateOpenapiSpec } from '@nivalis/openapi-next';
 
 await generateOpenapiSpec({
   title: 'Example API',
-  description: 'Routes served by the App Router',
   version: '1.0.0',
 });
 ```
 
-Add a package script so the spec can be regenerated on demand or during CI:
-
-```json
-{
-  "scripts": {
-    "openapi": "bunx tsx scripts/generate-openapi.ts"
-  }
-}
-```
-
 ## Migration guide
 
-See `docs/migrations/v3.md` for breaking changes and v2-to-v3 examples.
+See `docs/migrations/v3.md` for breaking changes and migration examples.
 
 ## License
 
