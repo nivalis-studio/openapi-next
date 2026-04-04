@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "78cf2132b78e",
+  "session_id": "ses_2a7f8c994ffeheOOboI3TRooOa",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-04T16:57:28.683433Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "src/core/runtime/validate-input.ts",
+    "src/next/create-next-handler.ts",
+    "docs/migrations/v3.md",
+    "docs/superpowers/plans/2026-04-04-esm-only-bindcontract-dx-implementation.md",
+    "src/core/contract.ts",
+    "src/core/define-route.test.ts",
+    "src/core/runtime/execute-route.ts",
+    "src/next/create-next-handler.test.ts",
+    "docs/superpowers/specs/2026-04-04-openapi-next-dx-esm-contract-first-design.md",
+    "src/core/openapi/docs-contract.test.ts",
+    "src/core/runtime/execute-route.test.ts",
+    "src/core/runtime/validate-input.test.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "kimi-k2.5",
+  "turn_id": "5b1b30b6aa89",
+  "initial_attribution": {
+    "calculated_at": "2026-04-04T16:57:28.683047Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 187,
+    "human_removed": 876,
+    "total_committed": 838,
+    "agent_percentage": 0
+  }
+}
