@@ -55,7 +55,7 @@ describe('json-schema conversion', () => {
     });
   });
 
-  it('converts with draft-2020-12 and ref behavior', () => {
+  it('converts with draft-2020-12 and inline reused schemas', () => {
     const user = z.object({ id: z.string() });
     type Node = { name: string; children: Array<Node> };
     const nodeSchema: z.ZodType<Node> = z.lazy(() =>
@@ -80,14 +80,24 @@ describe('json-schema conversion', () => {
     expect(json).toMatchObject({
       $schema: 'https://json-schema.org/draft/2020-12/schema',
       properties: {
-        primary: { $ref: '#/$defs/__schema0' },
-        secondary: { $ref: '#/$defs/__schema0' },
-        root: { $ref: '#/$defs/__schema1' },
+        primary: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        secondary: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        root: { $ref: '#/$defs/__schema0' },
       },
     });
     expect(json).toHaveProperty(
-      '$defs.__schema1.properties.children.items.$ref',
-      '#/$defs/__schema1',
+      '$defs.__schema0.properties.children.items.$ref',
+      '#/$defs/__schema0',
     );
   });
 

@@ -1,5 +1,6 @@
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -18,11 +19,17 @@ const fixtureContractPath = path.join(fixtureApiDir, 'contract.ts');
 
 mkdirSync(fixtureApiDir, { recursive: true });
 mkdirSync(path.join(fixtureRoot, 'node_modules'), { recursive: true });
-symlinkSync(
-  path.join(repoRoot, 'node_modules/zod'),
-  path.join(fixtureRoot, 'node_modules/zod'),
-  'dir',
-);
+
+// Symlink zod from repo to fixture
+const repoZodPath = path.join(repoRoot, 'node_modules/zod');
+const fixtureZodPath = path.join(fixtureRoot, 'node_modules/zod');
+
+if (existsSync(repoZodPath)) {
+  symlinkSync(repoZodPath, fixtureZodPath, 'dir');
+} else {
+  console.error('zod not found at:', repoZodPath);
+  process.exit(1);
+}
 
 writeFileSync(
   fixtureRoutePath,
@@ -30,13 +37,13 @@ writeFileSync(
   'utf8',
 );
 
+// Use a plain contract object that doesn't need imports
 writeFileSync(
   fixtureContractPath,
   [
-    `import { defineRouteContract } from '${path.join(repoRoot, 'src/core/define-route.ts')}';`,
     "import { z } from 'zod';",
     '',
-    'export const healthContract = defineRouteContract({',
+    'export const healthContract = {',
     "  method: 'GET',",
     "  operationId: 'openapiSmokeHealthCheck',",
     '  responses: {',
@@ -49,7 +56,7 @@ writeFileSync(
     '      },',
     '    },',
     '  },',
-    '});',
+    '};',
     '',
   ].join('\n'),
   'utf8',
@@ -64,8 +71,15 @@ try {
     version: '3.0.0',
   });
 
-  copyFileSync(
-    path.join(fixtureRoot, 'public/openapi.json'),
+  const outputFile = path.join(fixtureRoot, 'public/openapi.json');
+  if (!existsSync(outputFile)) {
+    console.error('OpenAPI spec was not generated at:', outputFile);
+    process.exit(1);
+  }
+
+  copyFileSync(outputFile, path.join(repoRoot, 'public/openapi.json'));
+  console.log(
+    'OpenAPI spec generated at',
     path.join(repoRoot, 'public/openapi.json'),
   );
 } finally {
