@@ -13,6 +13,32 @@ import type { ErrorCode } from '../errors/error-codes';
 const asErrorCode = (code: string): ErrorCode => code as ErrorCode;
 const INTERNAL_SERVER_ERROR_STATUS = 500;
 
+/**
+ * Creates a responder object with json and text methods for building responses.
+ */
+const createResponder = () => ({
+  json: <TStatus extends number>(
+    status: TStatus,
+    body: unknown,
+    headers?: RouteHeaders,
+  ) => ({
+    status,
+    contentType: 'application/json' as const,
+    body,
+    headers,
+  }),
+  text: <TStatus extends number>(
+    status: TStatus,
+    body: string,
+    headers?: RouteHeaders,
+  ) => ({
+    status,
+    contentType: 'text/plain' as const,
+    body,
+    headers,
+  }),
+});
+
 const isJsonContentType = (contentType: string): boolean => {
   const mediaType = contentType.split(';', 1)[0]?.trim().toLowerCase() ?? '';
   return mediaType === 'application/json' || mediaType.endsWith('+json');
@@ -89,15 +115,19 @@ const executeRouteEffect = <TContract extends RouteContract>(
       );
     }
 
+    const validatedInput = input.data as RouteInputData<TContract>;
+    const routeContext = {
+      request,
+      params: validatedInput.params,
+      query: validatedInput.query,
+      body: validatedInput.body,
+    };
+    const respond = createResponder() as unknown as Parameters<
+      BoundRouteHandler<TContract>
+    >[1];
+
     const result = yield* Effect.tryPromise({
-      try: () =>
-        Promise.resolve(
-          routeHandler(
-            request,
-            context,
-            input.data as RouteInputData<TContract>,
-          ),
-        ),
+      try: () => Promise.resolve(routeHandler(routeContext, respond)),
       catch: (error): ExecutionError => ({
         _tag: 'HandlerError',
         error,

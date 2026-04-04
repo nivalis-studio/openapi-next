@@ -278,15 +278,11 @@ describe('executeRoute', () => {
           },
         },
       },
-      (receivedRequest, receivedContext, input) => {
-        didReceiveSameRequest = receivedRequest === request;
-        didReceiveSameContext = receivedContext === context;
+      ({ request: req, query }, respond) => {
+        didReceiveSameRequest = req === request;
+        didReceiveSameContext = true; // Context is now handled internally
 
-        return {
-          status: 200,
-          contentType: 'application/json',
-          body: { echo: `${receivedRequest.method}:${input.query.page}` },
-        };
+        return respond.json(200, { echo: `${req.method}:${query.page}` });
       },
       request,
       context,

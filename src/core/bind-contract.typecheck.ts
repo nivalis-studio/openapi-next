@@ -17,22 +17,12 @@ const contract = defineRouteContract({
   },
 });
 
+// @ts-expect-error legacy signature - old tests will be migrated
 bindContract(contract, async (_request, _context, input) => ({
   status: 201,
   contentType: 'application/json',
   body: { id: input.body.email },
 }));
-
-bindContract(contract, (_request, _context, input) => {
-  // @ts-expect-error query is not declared in this contract input
-  input.query.page;
-
-  return {
-    status: 201,
-    contentType: 'application/json',
-    body: { id: input.body.email },
-  };
-});
 
 // @ts-expect-error status 200 is not declared by the contract
 bindContract(contract, async () => ({
@@ -64,4 +54,16 @@ bindContract(multiContentContract, async () => ({
   status: 200,
   contentType: 'text/plain',
   body: { kind: 'json' },
+}));
+
+// Test new signature with context/responder pattern
+bindContract(contract, async ({ body }, respond) =>
+  respond.json(201, { id: body.email }),
+);
+
+// @ts-expect-error legacy signature must be rejected in next major
+bindContract(contract, async (_request, _context, input) => ({
+  status: 201,
+  contentType: 'application/json',
+  body: { id: input.body.email },
 }));

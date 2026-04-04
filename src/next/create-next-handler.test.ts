@@ -57,18 +57,14 @@ describe('next adapter', () => {
       },
     });
 
-    const GET = bindContract(contract, async (request, context, input) => {
-      const params = await context.params;
-      const region = z.object({ region: z.string() }).parse(params).region;
-
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: {
-          echo: `${new URL(request.url).hostname}:${region}:${input.query.ping}`,
-        },
-      };
-    });
+    const GET = bindContract(
+      contract,
+      ({ request, params, query }, respond) => {
+        return respond.json(200, {
+          echo: `${new URL(request.url).hostname}:${params.region}:${query.ping}`,
+        });
+      },
+    );
 
     const response = await GET(new Request('https://api.test/health?ping=ok'), {
       params: Promise.resolve({ region: 'eu' }),

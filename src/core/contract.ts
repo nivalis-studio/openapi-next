@@ -55,12 +55,12 @@ type InputValue<
       : unknown
     : unknown;
 
-type ResponseStatuses<TContract extends RouteContract> = Extract<
+export type ResponseStatuses<TContract extends RouteContract> = Extract<
   keyof TContract['responses'],
   number
 >;
 
-type ResponseContentTypes<
+export type ResponseContentTypes<
   TContract extends RouteContract,
   Status extends ResponseStatuses<TContract>,
 > = Extract<keyof TContract['responses'][Status]['content'], string>;
@@ -98,10 +98,83 @@ export type ContractRouteHandlerResult<TContract extends RouteContract> = {
   >;
 }[ResponseStatuses<TContract>];
 
+export type ContractStatusesWithMedia<
+  TContract extends RouteContract,
+  TMedia extends string,
+> = Extract<
+  {
+    [Status in ResponseStatuses<TContract>]: TMedia extends ResponseContentTypes<
+      TContract,
+      Status
+    >
+      ? Status
+      : never;
+  }[ResponseStatuses<TContract>],
+  number
+>;
+
+export type ContractResponseByStatusAndMedia<
+  TContract extends RouteContract,
+  TStatus extends ResponseStatuses<TContract>,
+  TMedia extends ResponseContentTypes<TContract, TStatus>,
+> = {
+  status: TStatus;
+  contentType?: TMedia;
+  body: ResponseBody<TContract, TStatus, TMedia>;
+  headers?: RouteHeaders;
+};
+
+export type BoundRouteContext<TContract extends RouteContract> = {
+  request: Request;
+  params: RouteInputData<TContract>['params'];
+  query: RouteInputData<TContract>['query'];
+  body: RouteInputData<TContract>['body'];
+};
+
+// Helper type to extract response body for a given status and media type
+// Returns never if the media type is not valid for the status
+type ExtractResponseBody<
+  TContract extends RouteContract,
+  TStatus extends ResponseStatuses<TContract>,
+  TMedia extends string,
+> =
+  TMedia extends ResponseContentTypes<TContract, TStatus>
+    ? ResponseBody<TContract, TStatus, TMedia>
+    : never;
+
+// Helper to build the response object type for a valid status/media combination
+type BuildResponse<
+  TContract extends RouteContract,
+  TStatus extends ResponseStatuses<TContract>,
+  TMedia extends string,
+> =
+  TMedia extends ResponseContentTypes<TContract, TStatus>
+    ? {
+        status: TStatus;
+        contentType?: TMedia;
+        body: ResponseBody<TContract, TStatus, TMedia>;
+        headers?: RouteHeaders;
+      }
+    : never;
+
+export type BoundRouteResponder<TContract extends RouteContract> = {
+  json: <
+    TStatus extends ContractStatusesWithMedia<TContract, 'application/json'>,
+  >(
+    status: TStatus,
+    body: ExtractResponseBody<TContract, TStatus, 'application/json'>,
+    headers?: RouteHeaders,
+  ) => BuildResponse<TContract, TStatus, 'application/json'>;
+  text: <TStatus extends ContractStatusesWithMedia<TContract, 'text/plain'>>(
+    status: TStatus,
+    body: ExtractResponseBody<TContract, TStatus, 'text/plain'>,
+    headers?: RouteHeaders,
+  ) => BuildResponse<TContract, TStatus, 'text/plain'>;
+};
+
 export type BoundRouteHandler<TContract extends RouteContract> = (
-  request: Request,
-  context: { params: Promise<unknown> },
-  input: RouteInputData<TContract>,
+  context: BoundRouteContext<TContract>,
+  respond: BoundRouteResponder<TContract>,
 ) =>
   | Promise<ContractRouteHandlerResult<TContract>>
   | ContractRouteHandlerResult<TContract>;

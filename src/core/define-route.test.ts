@@ -24,11 +24,9 @@ describe('bindContract', () => {
       },
     });
 
-    const GET = bindContract(contract, async (_request, _context, input) => ({
-      status: 200,
-      contentType: 'application/json',
-      body: { success: input.query.page >= 1 },
-    }));
+    const GET = bindContract(contract, async ({ query }, respond) =>
+      respond.json(200, { success: query.page >= 1 }),
+    );
 
     expect(typeof GET).toBe('function');
 
