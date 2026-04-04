@@ -2,8 +2,7 @@ import { Effect } from 'effect';
 import { errorResponseBody, internalErrorBody } from '../errors/error-shape';
 import { isJsonMediaType, normalizeMediaType } from './media-type';
 import { createResponder } from './respond';
-import { validateInput } from './validate-input';
-import { validateOutput } from './validate-output';
+import { validateInput, validateOutput } from './validation';
 import type { NextRequest } from 'next/server';
 import type {
   BoundRouteHandler,

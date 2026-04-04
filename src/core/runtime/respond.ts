@@ -5,10 +5,6 @@ import type {
   RouteHeaders,
 } from '../contract';
 
-const toHeaders = (
-  headers: RouteHeaders | undefined,
-): RouteHeaders | undefined => headers;
-
 export const createResponder = <
   TContract extends RouteContract,
 >(): BoundRouteResponder<TContract> =>
@@ -18,13 +14,13 @@ export const createResponder = <
         status,
         contentType: 'application/json',
         body,
-        headers: toHeaders(headers),
+        headers,
       }) as unknown as ContractRouteHandlerResult<TContract>,
     text: (status: number, body: string, headers?: RouteHeaders) =>
       ({
         status,
         contentType: 'text/plain',
         body,
-        headers: toHeaders(headers),
+        headers,
       }) as unknown as ContractRouteHandlerResult<TContract>,
   }) as unknown as BoundRouteResponder<TContract>;

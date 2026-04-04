@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { validateInput } from './validate-input';
+import { validateInput } from './validation';
 
 const BAD_REQUEST_STATUS = 400;
 const METHOD_NOT_ALLOWED_STATUS = 405;

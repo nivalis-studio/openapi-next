@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { z } from 'zod';
-import { validateOutput } from './validate-output';
+import { validateOutput } from './validation';
 
 const INTERNAL_SERVER_ERROR_STATUS = 500;
 
