@@ -1,4 +1,5 @@
 import { executeRoute } from '../core/runtime/execute-route';
+import type { NextRequest } from 'next/server';
 import type {
   BoundRouteHandler,
   NextRouteHandler,
@@ -10,7 +11,7 @@ export const createNextHandler = <TContract extends RouteContract>(
   routeHandler: BoundRouteHandler<TContract>,
 ): NextRouteHandler => {
   const handler: NextRouteHandler = async (
-    request: Request,
+    request: NextRequest,
     context: { params: Promise<unknown> },
   ) => executeRoute(contract, routeHandler, request, context);
 

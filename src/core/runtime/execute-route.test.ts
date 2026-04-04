@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { executeRoute } from './execute-route';
 
@@ -30,7 +31,7 @@ describe('executeRoute', () => {
           contentType: 'application/json',
           body: { count: 'not-a-number' },
         }) as any,
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -61,7 +62,7 @@ describe('executeRoute', () => {
           contentType: 'application/json',
           body: { count: '42' },
         }) as any,
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -89,7 +90,7 @@ describe('executeRoute', () => {
         contentType: TEXT_PLAIN,
         body: 'hello world',
       }),
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -118,7 +119,7 @@ describe('executeRoute', () => {
         body: { ok: true },
         headers: new Headers({ 'x-request-id': 'from-headers' }),
       }),
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -148,7 +149,7 @@ describe('executeRoute', () => {
         body: { ok: true },
         headers: [['x-trace-id', 'from-tuple-array']],
       }),
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -183,7 +184,7 @@ describe('executeRoute', () => {
           'content-type': TEXT_PLAIN,
         },
       }),
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -214,7 +215,7 @@ describe('executeRoute', () => {
           contentType: 'application/problem+json; charset=utf-8',
           body: { detail: 404 },
         }) as any,
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -242,7 +243,7 @@ describe('executeRoute', () => {
       () => {
         throw new Error('do not leak this');
       },
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -253,7 +254,7 @@ describe('executeRoute', () => {
   });
 
   it('supports bound handlers with request context and validated input', async () => {
-    const request = new Request('https://api.test/items?page=2', {
+    const request = new NextRequest('https://api.test/items?page=2', {
       method: 'GET',
     });
     const context = { params: Promise.resolve({ tenant: 'eu' }) };
@@ -314,7 +315,7 @@ describe('executeRoute', () => {
         status: 200,
         body: { ok: true },
       }),
-      new Request('https://api.test/items', { method: 'GET' }),
+      new NextRequest('https://api.test/items', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -353,7 +354,7 @@ describe('executeRoute', () => {
           body: { ok: true },
         };
       },
-      new Request('https://api.test/items?page=not-a-number', {
+      new NextRequest('https://api.test/items?page=not-a-number', {
         method: 'GET',
       }),
       { params: Promise.resolve({}) },
@@ -385,7 +386,7 @@ describe('executeRoute', () => {
         },
       },
       ({ query }, respond) => respond.json(200, { echo: `page:${query.page}` }),
-      new Request('https://api.test/items?page=2', { method: 'GET' }),
+      new NextRequest('https://api.test/items?page=2', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { bindContract, defineRouteContract } from '../core/define-route';
 
@@ -28,7 +29,7 @@ describe('next adapter', () => {
     }));
 
     const response = await GET(
-      new Request('https://api.test/health', { method: 'GET' }),
+      new NextRequest('https://api.test/health', { method: 'GET' }),
       { params: Promise.resolve({}) },
     );
 
@@ -65,9 +66,12 @@ describe('next adapter', () => {
       },
     );
 
-    const response = await GET(new Request('https://api.test/health?ping=ok'), {
-      params: Promise.resolve({ region: 'eu' }),
-    });
+    const response = await GET(
+      new NextRequest('https://api.test/health?ping=ok'),
+      {
+        params: Promise.resolve({ region: 'eu' }),
+      },
+    );
 
     expect(response.status).toBe(OK_STATUS);
     expect(await response.json()).toEqual({ echo: 'api.test:eu:ok' });

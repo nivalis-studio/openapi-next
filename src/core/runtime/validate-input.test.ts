@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateInput } from './validate-input';
 
@@ -8,7 +9,7 @@ const UNSUPPORTED_MEDIA_TYPE_STATUS = 415;
 
 describe('validateInput', () => {
   it('rejects mismatched content-type when body schema exists', async () => {
-    const req = new Request('https://api.test/users', {
+    const req = new NextRequest('https://api.test/users', {
       method: 'POST',
       headers: { 'content-type': 'text/plain' },
       body: 'x',
@@ -34,7 +35,7 @@ describe('validateInput', () => {
   });
 
   it('parses and validates params query and body for valid request', async () => {
-    const req = new Request('https://api.test/users?page=2', {
+    const req = new NextRequest('https://api.test/users?page=2', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'Ada' }),
@@ -64,7 +65,7 @@ describe('validateInput', () => {
   });
 
   it('returns invalidRequestBody for malformed json body', async () => {
-    const req = new Request('https://api.test/users', {
+    const req = new NextRequest('https://api.test/users', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: '{"name":',
@@ -91,7 +92,7 @@ describe('validateInput', () => {
   });
 
   it('parses and validates text/plain request bodies as strings', async () => {
-    const req = new Request('https://api.test/messages', {
+    const req = new NextRequest('https://api.test/messages', {
       method: 'POST',
       headers: { 'content-type': 'text/plain; charset=utf-8' },
       body: 'hello world',
@@ -117,7 +118,7 @@ describe('validateInput', () => {
   });
 
   it('parses and validates +json media type request bodies as JSON objects', async () => {
-    const req = new Request('https://api.test/problems', {
+    const req = new NextRequest('https://api.test/problems', {
       method: 'POST',
       headers: { 'content-type': 'application/problem+json; charset=utf-8' },
       body: JSON.stringify({
@@ -147,7 +148,7 @@ describe('validateInput', () => {
   });
 
   it('returns methodNotAllowed when request method does not match route method', async () => {
-    const req = new Request('https://api.test/users', { method: 'GET' });
+    const req = new NextRequest('https://api.test/users', { method: 'GET' });
 
     const result = await validateInput(
       {
@@ -167,7 +168,7 @@ describe('validateInput', () => {
   });
 
   it('handles paramsPromise rejection as invalidParams error', async () => {
-    const req = new Request('https://api.test/users', { method: 'GET' });
+    const req = new NextRequest('https://api.test/users', { method: 'GET' });
 
     const result = await validateInput(
       {
@@ -190,7 +191,7 @@ describe('validateInput', () => {
   });
 
   it('accepts empty body when body schema is optional', async () => {
-    const req = new Request('https://api.test/users', {
+    const req = new NextRequest('https://api.test/users', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
     });
@@ -219,7 +220,7 @@ describe('validateInput', () => {
   });
 
   it('accepts missing content-type when optional body is empty', async () => {
-    const req = new Request('https://api.test/users', {
+    const req = new NextRequest('https://api.test/users', {
       method: 'POST',
     });
 

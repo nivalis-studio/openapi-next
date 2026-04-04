@@ -1,3 +1,4 @@
+import type { NextRequest } from 'next/server';
 import type { z } from 'zod';
 
 export type RouteHeaders =
@@ -123,7 +124,7 @@ export type ContractResponseByStatusAndMedia<
 };
 
 export type BoundRouteContext<TContract extends RouteContract> = {
-  request: Request;
+  request: NextRequest;
   params: RouteInputData<TContract>['params'];
   query: RouteInputData<TContract>['query'];
   body: RouteInputData<TContract>['body'];
@@ -186,6 +187,6 @@ export type RouteDefinition = RouteContract & {
 };
 
 export type NextRouteHandler = (
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<unknown> },
 ) => Promise<Response>;

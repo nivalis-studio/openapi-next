@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { ERROR_CODES } from '../errors/error-codes';
 import { isJsonMediaType, normalizeMediaType } from './media-type';
+import type { NextRequest } from 'next/server';
 import type { RouteDefinition } from '../contract';
 
 type InputError = {
@@ -43,7 +44,7 @@ const resolveParams = (
  * Returns an Effect that always succeeds with the parsed body or undefined.
  */
 const parseRequestBody = (
-  request: Request,
+  request: NextRequest,
   mediaType: string,
 ): Effect.Effect<unknown | typeof JSON_PARSE_ERROR, never> =>
   Effect.tryPromise({
@@ -85,7 +86,9 @@ const parseRequestBody = (
 /**
  * Check if request body is empty.
  */
-const isEmptyRequestBody = (request: Request): Effect.Effect<boolean, never> =>
+const isEmptyRequestBody = (
+  request: NextRequest,
+): Effect.Effect<boolean, never> =>
   Effect.tryPromise({
     try: () => request.clone().text(),
     catch: () => '',
@@ -103,7 +106,7 @@ const shouldRejectUnsupportedMediaType = (
   bodySchema: RouteBodySchema | undefined,
   declaredContentType: string,
   requestContentType: string,
-  request: Request,
+  request: NextRequest,
 ): Effect.Effect<boolean, never> =>
   Effect.gen(function* () {
     if (!bodySchema) {
@@ -138,7 +141,7 @@ type InputValidationResult =
  */
 const validateMethod = (
   route: Pick<RouteDefinition, 'method'>,
-  request: Request,
+  request: NextRequest,
 ): Effect.Effect<void, InputError> =>
   request.method === route.method
     ? Effect.void
@@ -153,7 +156,7 @@ const validateMethod = (
  */
 const validateContentType = (
   route: Pick<RouteDefinition, 'input'>,
-  request: Request,
+  request: NextRequest,
   requestContentType: string,
 ): Effect.Effect<void, InputError> =>
   Effect.gen(function* () {
@@ -179,7 +182,7 @@ const validateContentType = (
  */
 const validateBody = (
   bodySchema: RouteBodySchema | undefined,
-  request: Request,
+  request: NextRequest,
   requestContentType: string,
 ): Effect.Effect<unknown | undefined, InputError> =>
   Effect.gen(function* () {
@@ -215,7 +218,7 @@ const validateBody = (
  */
 const validateInputEffect = (
   route: Pick<RouteDefinition, 'method' | 'operationId' | 'input'>,
-  request: Request,
+  request: NextRequest,
   paramsPromise: Promise<unknown>,
 ): Effect.Effect<InputSuccess, InputError> =>
   Effect.gen(function* () {
@@ -278,7 +281,7 @@ const validateInputEffect = (
  */
 export const validateInput = async (
   route: Pick<RouteDefinition, 'method' | 'operationId' | 'input'>,
-  request: Request,
+  request: NextRequest,
   paramsPromise: Promise<unknown>,
 ): Promise<InputValidationResult> => {
   const effect = validateInputEffect(route, request, paramsPromise);

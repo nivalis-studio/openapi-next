@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { bindContract, defineRouteContract } from './define-route';
 
@@ -31,7 +32,7 @@ describe('bindContract', () => {
     expect(typeof GET).toBe('function');
 
     const response = await GET(
-      new Request('https://example.com/users?page=1'),
+      new NextRequest('https://example.com/users?page=1'),
       {
         params: Promise.resolve({}),
       },

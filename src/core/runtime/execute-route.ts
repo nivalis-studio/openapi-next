@@ -4,6 +4,7 @@ import { isJsonMediaType, normalizeMediaType } from './media-type';
 import { createResponder } from './respond';
 import { validateInput } from './validate-input';
 import { validateOutput } from './validate-output';
+import type { NextRequest } from 'next/server';
 import type {
   BoundRouteHandler,
   RouteContract,
@@ -63,7 +64,7 @@ type ExecutionError = InputValidationError | HandlerError;
 const executeRouteEffect = <TContract extends RouteContract>(
   route: TContract,
   routeHandler: BoundRouteHandler<TContract>,
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<unknown> },
 ): Effect.Effect<Response, never> =>
   Effect.gen(function* () {
@@ -152,7 +153,7 @@ const executeRouteEffect = <TContract extends RouteContract>(
 export function executeRoute<TContract extends RouteContract>(
   route: TContract,
   routeHandler: BoundRouteHandler<TContract>,
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<unknown> },
 ): Promise<Response> {
   const effect = executeRouteEffect(route, routeHandler, request, context);
