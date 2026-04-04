@@ -10,21 +10,11 @@ export const defineRouteContract = <TContract extends RouteContract>(
   definition: TContract,
 ): TContract => definition;
 
-type BoundRouteOf<TContract extends RouteContract> = ReturnType<
-  typeof createNextHandler
-> & {
-  _route: TContract;
-};
-
 export const bindContract = <TContract extends RouteContract>(
   contract: TContract,
   handler: BoundRouteHandler<TContract>,
-): BoundRouteOf<TContract> => {
-  const nextHandler = createNextHandler(
-    contract,
-    handler,
-  ) as BoundRouteOf<TContract>;
-  nextHandler._route = contract;
+): ReturnType<typeof createNextHandler<TContract>> => {
+  const nextHandler = createNextHandler(contract, handler);
 
   return nextHandler;
 };

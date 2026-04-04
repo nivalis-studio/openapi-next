@@ -1,6 +1,4 @@
 import type { z } from 'zod';
-import type { ToJsonOptions } from '../lib/zod';
-import type { NrfOasData } from '../types/open-api';
 
 export type RouteHeaders =
   | Headers
@@ -187,12 +185,7 @@ export type RouteDefinition = RouteContract & {
   }) => Promise<RouteHandlerResult> | RouteHandlerResult;
 };
 
-export type NextRouteHandler = ((
+export type NextRouteHandler = (
   request: Request,
   context: { params: Promise<unknown> },
-) => Promise<Response>) & {
-  _generateOpenApi: (
-    routeName: string,
-    zodToJsonOptions?: ToJsonOptions,
-  ) => NrfOasData;
-};
+) => Promise<Response>;

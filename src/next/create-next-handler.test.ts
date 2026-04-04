@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { z } from 'zod';
 import { bindContract, defineRouteContract } from '../core/define-route';
-import type { OpenAPIV3_1 as OpenAPI } from 'openapi-types';
 
 const OK_STATUS = 200;
 
@@ -74,10 +73,10 @@ describe('next adapter', () => {
     expect(await response.json()).toEqual({ echo: 'api.test:eu:ok' });
   });
 
-  it('exposes _generateOpenApi compatibility helper on the handler', () => {
+  it('does not expose _generateOpenApi compatibility helper', () => {
     const contract = defineRouteContract({
       method: 'GET',
-      operationId: 'health',
+      operationId: 'health-no-meta',
       responses: {
         200: {
           description: 'ok',
@@ -90,62 +89,11 @@ describe('next adapter', () => {
       },
     });
 
-    const GET = bindContract(contract, async () => ({
-      status: 200,
-      contentType: 'application/json',
-      body: { ok: true as const },
-    }));
+    const GET = bindContract(contract, (_ctx, respond) =>
+      respond.json(200, { ok: true as const }),
+    );
 
-    expect(typeof GET._generateOpenApi).toBe('function');
-
-    const openApiData = GET._generateOpenApi('/health');
-
-    expect(openApiData.paths).toBeDefined();
-    expect(openApiData.paths?.['/health']?.get).toBeDefined();
-  });
-
-  it('forwards zodToJsonOptions through _generateOpenApi compatibility helper', () => {
-    const sharedSchema = z.object({ value: z.string() });
-
-    const contract = defineRouteContract({
-      method: 'GET',
-      operationId: 'health',
-      responses: {
-        200: {
-          description: 'ok',
-          content: {
-            'application/json': {
-              schema: z.object({
-                first: sharedSchema,
-                second: sharedSchema,
-              }),
-            },
-          },
-        },
-      },
-    });
-
-    const GET = bindContract(contract, async () => ({
-      status: 200,
-      contentType: 'application/json',
-      body: {
-        first: { value: 'a' },
-        second: { value: 'b' },
-      },
-    }));
-
-    const openApiData = GET._generateOpenApi('/health', {
-      reused: 'inline',
-    });
-
-    const response = openApiData.paths?.['/health']?.get?.responses?.[
-      '200'
-    ] as OpenAPI.ResponseObject;
-
-    const schema = response.content?.['application/json']?.schema as {
-      $defs?: unknown;
-    };
-
-    expect(schema.$defs).toBeUndefined();
+    expect('_generateOpenApi' in GET).toBe(false);
+    expect('_route' in GET).toBe(false);
   });
 });
