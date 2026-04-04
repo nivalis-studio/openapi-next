@@ -33,7 +33,7 @@ export type RouteResponses = Record<
 
 export type RouteHandlerResult = {
   status: number;
-  contentType: string;
+  contentType?: string;
   body: unknown;
   headers?: RouteHeaders;
 };
@@ -85,7 +85,7 @@ type ContractRouteHandlerResultForStatus<
 > = {
   [ContentType in ResponseContentTypes<TContract, Status>]: {
     status: Status;
-    contentType: ContentType;
+    contentType?: ContentType;
     body: ResponseBody<TContract, Status, ContentType>;
     headers?: RouteHeaders;
   };

@@ -20,6 +20,7 @@ describe('validateOutput', () => {
         contentType: 'text/plain',
         body: { ok: true },
       },
+      'text/plain',
     );
 
     expect(result.ok).toBe(false);
@@ -46,6 +47,7 @@ describe('validateOutput', () => {
         contentType: 'application/json',
         body: { count: 'not-a-number' },
       },
+      'application/json',
     );
 
     expect(result.ok).toBe(false);
@@ -72,6 +74,7 @@ describe('validateOutput', () => {
         contentType: 'application/json',
         body: { count: '42' },
       },
+      'application/json',
     );
 
     expect(result.ok).toBe(true);

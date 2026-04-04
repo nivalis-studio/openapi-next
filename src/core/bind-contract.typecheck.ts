@@ -4,7 +4,7 @@ import { bindContract, defineRouteContract } from './define-route';
 const contract = defineRouteContract({
   method: 'POST',
   operationId: 'createUser',
-  input: { body: z.object({ email: z.string().email() }) },
+  input: { body: z.object({ email: z.email() }) },
   responses: {
     201: {
       description: 'created',

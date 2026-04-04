@@ -24,6 +24,7 @@ type OutputError = {
 const validateOutputEffect = (
   responses: RouteResponses,
   result: RouteHandlerResult,
+  contentType: string,
 ): Effect.Effect<unknown, OutputError> =>
   Effect.gen(function* () {
     const responseDef = responses[result.status];
@@ -35,20 +36,19 @@ const validateOutputEffect = (
       });
     }
 
-    const requestedMediaType = normalizeMediaType(result.contentType);
+    const requestedMediaType = normalizeMediaType(contentType);
     const mediaDef =
-      responseDef.content[result.contentType] ??
+      responseDef.content[contentType] ??
       responseDef.content[requestedMediaType] ??
       Object.entries(responseDef.content).find(
-        ([contentType]) =>
-          normalizeMediaType(contentType) === requestedMediaType,
+        ([ct]) => normalizeMediaType(ct) === requestedMediaType,
       )?.[1];
 
     if (!mediaDef) {
       return yield* Effect.fail({
         status: INTERNAL_SERVER_ERROR_STATUS,
         code: ERROR_CODES.responseValidationFailed,
-        message: `Undeclared response content type: ${result.contentType}`,
+        message: `Undeclared response content type: ${contentType}`,
       });
     }
 
@@ -71,8 +71,9 @@ const validateOutputEffect = (
 export const validateOutput = (
   responses: RouteResponses,
   result: RouteHandlerResult,
+  contentType: string,
 ): OutputValidationResult => {
-  const effect = validateOutputEffect(responses, result);
+  const effect = validateOutputEffect(responses, result, contentType);
   const resultEither = Effect.runSync(Effect.either(effect));
 
   if (resultEither._tag === 'Left') {

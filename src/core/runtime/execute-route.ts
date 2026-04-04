@@ -105,7 +105,9 @@ const executeRouteEffect = <TContract extends RouteContract>(
       }),
     });
 
-    const output = validateOutput(route.responses, result);
+    const contentType = result.contentType ?? 'application/json';
+
+    const output = validateOutput(route.responses, result, contentType);
     if (!output.ok) {
       return Response.json(
         errorResponseBody(output.code, output.message, output.status),
@@ -113,9 +115,9 @@ const executeRouteEffect = <TContract extends RouteContract>(
       );
     }
 
-    const headers = normalizeHeaders(result.headers, result.contentType);
+    const headers = normalizeHeaders(result.headers, contentType);
 
-    if (isJsonContentType(result.contentType)) {
+    if (isJsonContentType(contentType)) {
       return Response.json(output.body, {
         status: result.status,
         headers,

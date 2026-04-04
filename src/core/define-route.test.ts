@@ -40,6 +40,6 @@ describe('bindContract', () => {
     );
 
     expect(response.status).toBe(OK_STATUS);
-    await expect(response.json()).resolves.toEqual({ success: true });
+    expect(response.json()).resolves.toEqual({ success: true });
   });
 });

@@ -24,20 +24,20 @@ pnpm add @nivalis/openapi-next
 
 ```ts
 // src/app/api/users/contract.ts
-import { defineRouteContract } from '@nivalis/openapi-next';
-import { z } from 'zod';
+import { defineRouteContract } from "@nivalis/openapi-next";
+import { z } from "zod";
 
 export const listUsersContract = defineRouteContract({
-  method: 'GET',
-  operationId: 'listUsers',
+  method: "GET",
+  operationId: "listUsers",
   input: {
     query: z.object({ page: z.coerce.number().int().min(1).default(1) }),
   },
   responses: {
     200: {
-      description: 'Users list',
+      description: "Users list",
       content: {
-        'application/json': {
+        "application/json": {
           schema: z.object({
             success: z.literal(true),
             items: z.array(
@@ -56,14 +56,13 @@ export const listUsersContract = defineRouteContract({
 
 ```ts
 // src/app/api/users/route.ts
-import { bindContract } from '@nivalis/openapi-next';
-import { listUsersContract } from './contract';
+import { bindContract } from "@nivalis/openapi-next";
+import { listUsersContract } from "./contract";
 
 export const GET = bindContract(
   listUsersContract,
   async (_request, _context, input) => ({
     status: 200,
-    contentType: 'application/json',
     body: {
       success: true,
       items: await fetchUsers(input.query.page),
@@ -71,6 +70,8 @@ export const GET = bindContract(
   }),
 );
 ```
+
+> **Note:** The `contentType` field is optional and defaults to `'application/json'`. You only need to specify it when returning non-JSON responses (e.g., `'text/plain'`, `'text/csv'`).
 
 ## Generating OpenAPI
 
@@ -95,11 +96,11 @@ Useful options:
 You can also generate from a script:
 
 ```ts
-import { generateOpenapiSpec } from '@nivalis/openapi-next';
+import { generateOpenapiSpec } from "@nivalis/openapi-next";
 
 await generateOpenapiSpec({
-  title: 'Example API',
-  version: '1.0.0',
+  title: "Example API",
+  version: "1.0.0",
 });
 ```
 

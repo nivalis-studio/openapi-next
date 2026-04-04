@@ -295,6 +295,35 @@ describe('executeRoute', () => {
     expect(await response.json()).toEqual({ echo: 'GET:2' });
   });
 
+  it('defaults to application/json when contentType is not provided', async () => {
+    const response = await executeRoute(
+      {
+        method: 'GET',
+        operationId: 'default-content-type',
+        responses: {
+          200: {
+            description: 'ok',
+            content: {
+              'application/json': {
+                schema: z.object({ ok: z.boolean() }),
+              },
+            },
+          },
+        },
+      },
+      async () => ({
+        status: 200,
+        body: { ok: true },
+      }),
+      new Request('https://api.test/items', { method: 'GET' }),
+      { params: Promise.resolve({}) },
+    );
+
+    expect(response.status).toBe(OK_STATUS);
+    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(await response.json()).toEqual({ ok: true });
+  });
+
   it('does not call next-style handler when input validation fails', async () => {
     let wasHandlerCalled = false;
 
