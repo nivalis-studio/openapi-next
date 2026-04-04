@@ -139,32 +139,30 @@ type InputValidationResult =
   | { ok: false; error: InputError };
 
 /**
- * Internal Effect-based validation.
+ * Validate request method matches route method.
  */
-const validateInputEffect = (
-  route: Pick<RouteDefinition, 'method' | 'operationId' | 'input'>,
+const validateMethod = (
+  route: Pick<RouteDefinition, 'method'>,
   request: Request,
-  paramsPromise: Promise<unknown>,
-): Effect.Effect<InputSuccess, InputError> =>
-  Effect.gen(function* () {
-    if (request.method !== route.method) {
-      return yield* Effect.fail({
+): Effect.Effect<void, InputError> =>
+  request.method === route.method
+    ? Effect.void
+    : Effect.fail({
         status: METHOD_NOT_ALLOWED_STATUS,
         code: ERROR_CODES.methodNotAllowed,
         message: 'Method not allowed.',
       });
-    }
 
-    const params = yield* resolveParams(paramsPromise);
-
-    const query = Object.fromEntries(
-      new URL(request.url).searchParams.entries(),
-    );
-    const requestContentType = normalizeMediaType(
-      request.headers.get('content-type'),
-    );
+/**
+ * Validate content type is acceptable for the route.
+ */
+const validateContentType = (
+  route: Pick<RouteDefinition, 'input'>,
+  request: Request,
+  requestContentType: string,
+): Effect.Effect<void, InputError> =>
+  Effect.gen(function* () {
     const declaredContentType = normalizeMediaType(route.input?.contentType);
-
     const shouldReject = yield* shouldRejectUnsupportedMediaType(
       route.input?.body,
       declaredContentType,
@@ -179,6 +177,66 @@ const validateInputEffect = (
         message: 'Invalid media type.',
       });
     }
+  });
+
+/**
+ * Parse and validate request body.
+ */
+const validateBody = (
+  bodySchema: RouteBodySchema | undefined,
+  request: Request,
+  requestContentType: string,
+): Effect.Effect<unknown | undefined, InputError> =>
+  Effect.gen(function* () {
+    if (!bodySchema) {
+      return;
+    }
+
+    const parsedJson = yield* parseRequestBody(request, requestContentType);
+
+    if (parsedJson === JSON_PARSE_ERROR) {
+      return yield* Effect.fail({
+        status: BAD_REQUEST_STATUS,
+        code: ERROR_CODES.invalidRequestBody,
+        message: 'Invalid request body.',
+      });
+    }
+
+    const parsedBody = bodySchema.safeParse(parsedJson);
+    if (!parsedBody.success) {
+      return yield* Effect.fail({
+        status: BAD_REQUEST_STATUS,
+        code: ERROR_CODES.invalidRequestBody,
+        message: 'Invalid request body.',
+        details: parsedBody.error.issues,
+      });
+    }
+
+    return parsedBody.data;
+  });
+
+/**
+ * Internal Effect-based validation.
+ */
+const validateInputEffect = (
+  route: Pick<RouteDefinition, 'method' | 'operationId' | 'input'>,
+  request: Request,
+  paramsPromise: Promise<unknown>,
+): Effect.Effect<InputSuccess, InputError> =>
+  Effect.gen(function* () {
+    const requestContentType = normalizeMediaType(
+      request.headers.get('content-type'),
+    );
+
+    yield* validateMethod(route, request);
+
+    const params = yield* resolveParams(paramsPromise);
+
+    const query = Object.fromEntries(
+      new URL(request.url).searchParams.entries(),
+    );
+
+    yield* validateContentType(route, request, requestContentType);
 
     const parsedParams = route.input?.params
       ? route.input.params.safeParse(params)
@@ -206,36 +264,16 @@ const validateInputEffect = (
       });
     }
 
-    // Validate body
-    let body: unknown;
-    if (route.input?.body) {
-      const parsedJson = yield* parseRequestBody(request, requestContentType);
-
-      if (parsedJson === JSON_PARSE_ERROR) {
-        return yield* Effect.fail({
-          status: BAD_REQUEST_STATUS,
-          code: ERROR_CODES.invalidRequestBody,
-          message: 'Invalid request body.',
-        });
-      }
-
-      const parsedBody = route.input.body.safeParse(parsedJson);
-      if (!parsedBody.success) {
-        return yield* Effect.fail({
-          status: BAD_REQUEST_STATUS,
-          code: ERROR_CODES.invalidRequestBody,
-          message: 'Invalid request body.',
-          details: parsedBody.error.issues,
-        });
-      }
-
-      body = parsedBody.data;
-    }
+    const body = yield* validateBody(
+      route.input?.body,
+      request,
+      requestContentType,
+    );
 
     return {
       params: parsedParams.data,
       query: parsedQuery.data,
-      body: route.input?.body ? body : undefined,
+      body,
     };
   });
 

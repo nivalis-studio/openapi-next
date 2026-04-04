@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { z } from 'zod';
 import { executeRoute } from './execute-route';
 
+const BAD_REQUEST_STATUS = 400;
 const INTERNAL_SERVER_ERROR_STATUS = 500;
 const OK_STATUS = 200;
 const TEXT_PLAIN = 'text/plain';
@@ -331,7 +332,7 @@ describe('executeRoute', () => {
     );
 
     expect(wasHandlerCalled).toBe(false);
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(BAD_REQUEST_STATUS);
     const body = (await response.json()) as { error: { code: string } };
     expect(body.error.code).toBe('INVALID_QUERY');
   });
