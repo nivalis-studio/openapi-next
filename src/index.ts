@@ -7,7 +7,7 @@ export const generateOpenapiSpec: typeof import('./cli/public-generate-openapi')
 
     return lazyGenerateOpenapiSpec(...args);
   };
-export { bindContract, defineRouteContract } from './core/define-route';
+export { bindContract, defineContract } from './core/define-route';
 export type {
   BoundRouteHandler,
   ContractRouteHandlerResult,

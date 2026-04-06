@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { errorResponseBody, internalErrorBody } from '../errors/error-shape';
 import { isJsonMediaType, normalizeMediaType } from './media-type';
 import { createResponder } from './respond';
-import { validateInput, validateOutput } from './validation';
+import { validateInput } from './validation';
 import type { NextRequest } from 'next/server';
 import type {
   BoundRouteHandler,
@@ -108,24 +108,16 @@ const executeRouteEffect = <TContract extends RouteContract>(
     const contentType = result.contentType ?? 'application/json';
     const normalized = normalizeMediaType(contentType);
 
-    const output = validateOutput(route.responses, result, contentType);
-    if (!output.ok) {
-      return Response.json(
-        errorResponseBody(output.code, output.message, output.status),
-        { status: output.status },
-      );
-    }
-
     const headers = normalizeHeaders(result.headers, contentType);
 
     if (isJsonMediaType(normalized)) {
-      return Response.json(output.body, {
+      return Response.json(result.body, {
         status: result.status,
         headers,
       });
     }
 
-    return new Response(toResponseBody(output.body), {
+    return new Response(toResponseBody(result.body), {
       status: result.status,
       headers,
     });

@@ -9,7 +9,7 @@ const OK_STATUS = 200;
 const TEXT_PLAIN = 'text/plain';
 
 describe('executeRoute', () => {
-  it('maps response validation failures to 500 RESPONSE_VALIDATION_FAILED', async () => {
+  it('does not validate response bodies at runtime', async () => {
     const response = await executeRoute(
       {
         method: 'GET',
@@ -35,12 +35,11 @@ describe('executeRoute', () => {
       { params: Promise.resolve({}) },
     );
 
-    expect(response.status).toBe(INTERNAL_SERVER_ERROR_STATUS);
-    const body = (await response.json()) as { error: { code: string } };
-    expect(body.error.code).toBe('RESPONSE_VALIDATION_FAILED');
+    expect(response.status).toBe(OK_STATUS);
+    expect(await response.json()).toEqual({ count: 'not-a-number' });
   });
 
-  it('returns success response with normalized validated output body', async () => {
+  it('returns success response body without output schema normalization', async () => {
     const response = await executeRoute(
       {
         method: 'GET',
@@ -68,7 +67,7 @@ describe('executeRoute', () => {
 
     expect(response.status).toBe(OK_STATUS);
     expect(response.headers.get('content-type')).toContain('application/json');
-    expect(await response.json()).toEqual({ count: 42 });
+    expect(await response.json()).toEqual({ count: '42' });
   });
 
   it('returns non-JSON success response body unchanged', async () => {
@@ -193,7 +192,7 @@ describe('executeRoute', () => {
     expect(await response.json()).toEqual({ ok: true });
   });
 
-  it('treats +json content types as JSON responses', async () => {
+  it('treats +json content types as JSON responses without body coercion', async () => {
     const response = await executeRoute(
       {
         method: 'GET',
@@ -223,7 +222,7 @@ describe('executeRoute', () => {
     expect(response.headers.get('content-type')).toContain(
       'application/problem+json',
     );
-    expect(await response.json()).toEqual({ detail: '404' });
+    expect(await response.json()).toEqual({ detail: 404 });
   });
 
   it('returns sanitized 500 when handler throws', async () => {
@@ -259,7 +258,6 @@ describe('executeRoute', () => {
     });
     const context = { params: Promise.resolve({ tenant: 'eu' }) };
     let didReceiveSameRequest = false;
-    let didReceiveSameContext = false;
 
     const response = await executeRoute(
       {
@@ -281,7 +279,6 @@ describe('executeRoute', () => {
       },
       ({ request: req, query }, respond) => {
         didReceiveSameRequest = req === request;
-        didReceiveSameContext = true; // Context is now handled internally
 
         return respond.json(200, { echo: `${req.method}:${query.page}` });
       },
@@ -290,7 +287,6 @@ describe('executeRoute', () => {
     );
 
     expect(didReceiveSameRequest).toBe(true);
-    expect(didReceiveSameContext).toBe(true);
     expect(response.status).toBe(OK_STATUS);
     expect(await response.json()).toEqual({ echo: 'GET:2' });
   });
@@ -364,33 +360,5 @@ describe('executeRoute', () => {
     expect(response.status).toBe(BAD_REQUEST_STATUS);
     const body = (await response.json()) as { error: { code: string } };
     expect(body.error.code).toBe('INVALID_QUERY');
-  });
-
-  it('supports object-context handler and respond.json helper', async () => {
-    const response = await executeRoute(
-      {
-        method: 'GET',
-        operationId: 'respond-helper-json',
-        input: {
-          query: z.object({ page: z.coerce.number().int().min(1) }),
-        },
-        responses: {
-          200: {
-            description: 'ok',
-            content: {
-              'application/json': {
-                schema: z.object({ echo: z.string() }),
-              },
-            },
-          },
-        },
-      },
-      ({ query }, respond) => respond.json(200, { echo: `page:${query.page}` }),
-      new NextRequest('https://api.test/items?page=2', { method: 'GET' }),
-      { params: Promise.resolve({}) },
-    );
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ echo: 'page:2' });
   });
 });

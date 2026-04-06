@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { bindContract, defineRouteContract } from './define-route';
+import { bindContract, defineContract } from './define-route';
 
-const contract = defineRouteContract({
+const contract = defineContract({
   method: 'POST',
   operationId: 'createUser',
   input: { body: z.object({ email: z.email() }) },
@@ -17,21 +17,7 @@ const contract = defineRouteContract({
   },
 });
 
-// @ts-expect-error legacy signature - old tests will be migrated
-bindContract(contract, async (_request, _context, input) => ({
-  status: 201,
-  contentType: 'application/json',
-  body: { id: input.body.email },
-}));
-
-// @ts-expect-error status 200 is not declared by the contract
-bindContract(contract, async () => ({
-  status: 200,
-  contentType: 'application/json',
-  body: { id: 'x' },
-}));
-
-const multiContentContract = defineRouteContract({
+const multiContentContract = defineContract({
   method: 'GET',
   operationId: 'multiContent',
   responses: {
@@ -49,27 +35,34 @@ const multiContentContract = defineRouteContract({
   },
 });
 
-// @ts-expect-error body does not match declared text/plain schema
-bindContract(multiContentContract, async () => ({
-  status: 200,
-  contentType: 'text/plain',
-  body: { kind: 'json' },
-}));
-
-// Test new signature with context/responder pattern
 bindContract(contract, async ({ body }, respond) =>
   respond.json(201, { id: body.email }),
 );
 
-// @ts-expect-error legacy signature must be rejected in next major
+// @ts-expect-error legacy signature must be rejected
 bindContract(contract, async (_request, _context, input) => ({
   status: 201,
   contentType: 'application/json',
   body: { id: input.body.email },
 }));
 
+// @ts-expect-error status 200 is not declared by the contract
+bindContract(contract, async (_ctx, respond) => respond.json(200, { id: 'x' }));
+
+// @ts-expect-error body does not match declared response schema
+bindContract(contract, async (_ctx, respond) => respond.json(201, { id: 123 }));
+
+bindContract(multiContentContract, async (_ctx, respond) =>
+  respond.text(200, 'ok'),
+);
+
+bindContract(multiContentContract, async (_ctx, respond) =>
+  // @ts-expect-error body does not match declared text/plain schema
+  respond.text(200, 42),
+);
+
 // Test path field is accepted (typed routes integration foundation)
-defineRouteContract({
+defineContract({
   path: '/api/users/[id]',
   method: 'GET',
   operationId: 'getUser',

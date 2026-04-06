@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { bindContract, defineRouteContract } from './define-route';
+import { bindContract, defineContract } from './define-route';
 
 const OK_STATUS = 200;
 
 describe('bindContract', () => {
   it('binds a contract to a Next-style handler', async () => {
-    const contract = defineRouteContract({
+    const contract = defineContract({
       method: 'GET',
       operationId: 'listUsers',
       input: {

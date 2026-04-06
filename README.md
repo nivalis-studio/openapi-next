@@ -1,12 +1,13 @@
 # @nivalis/openapi-next
 
-Contract-first route tooling for the Next.js App Router with strict Zod validation and OpenAPI 3.1 generation.
+Contract-first route tooling for the Next.js App Router with compile-time response typing and OpenAPI 3.1 generation.
 
 ## Features
 
-- Define pure route contracts with `defineRouteContract(...)`
+- Define pure route contracts with `defineContract(...)`
 - Bind Next.js handlers with `bindContract(contract, handler)`
-- Validate params, query, body, and response payloads at runtime
+- Validate params, query, and body at runtime
+- Enforce response status/content/body correctness at compile time via typed `respond` helpers
 - Generate OpenAPI 3.1 from `src/app/api` contract files
 - Run CLI with zero required flags (`openapi-next`)
 
@@ -24,10 +25,10 @@ pnpm add @nivalis/openapi-next
 
 ```ts
 // src/app/api/users/contract.ts
-import { defineRouteContract } from "@nivalis/openapi-next";
+import { defineContract } from "@nivalis/openapi-next";
 import { z } from "zod";
 
-export const listUsersContract = defineRouteContract({
+export const listUsersContract = defineContract({
   method: "GET",
   operationId: "listUsers",
   input: {
@@ -101,6 +102,10 @@ await generateOpenapiSpec({
 ## Migration guide
 
 See `docs/migrations/v3.md` for breaking changes and migration examples.
+
+## Roadmap
+
+- Optional runtime response validation mode for debugging and stricter runtime guarantees.
 
 ## License
 

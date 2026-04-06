@@ -10,7 +10,7 @@ import type { BoundRouteHandler, RouteContract } from './contract';
  * the path will be validated against your app's routes and params
  * will be inferred from the path segments.
  */
-export const defineRouteContract = <TContract extends RouteContract>(
+export const defineContract = <TContract extends RouteContract>(
   definition: TContract,
 ): TContract => definition;
 

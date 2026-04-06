@@ -3,11 +3,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod';
-import { defineRouteContract } from '../core/define-route';
+import { defineContract } from '../core/define-route';
 import { generateFromContracts } from './generate';
 
 const createContract = () =>
-  defineRouteContract({
+  defineContract({
     method: 'GET' as const,
     operationId: 'listUsers',
     responses: {
