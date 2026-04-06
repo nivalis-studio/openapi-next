@@ -1,5 +1,11 @@
 import { z } from 'zod';
+import { HTTP_STATUS } from '../lib/http';
 import { bindContract, defineContract } from './define-route';
+
+const CREATED_STATUS = HTTP_STATUS.created;
+const OK_STATUS = HTTP_STATUS.ok;
+const INVALID_NUMBER_ID = 123;
+const INVALID_TEXT_BODY = 42;
 
 const contract = defineContract({
   method: 'POST',
@@ -36,29 +42,33 @@ const multiContentContract = defineContract({
 });
 
 bindContract(contract, async ({ body }, respond) =>
-  respond.json(201, { id: body.email }),
+  respond.json(CREATED_STATUS, { id: body.email }),
 );
 
 // @ts-expect-error legacy signature must be rejected
 bindContract(contract, async (_request, _context, input) => ({
-  status: 201,
+  status: CREATED_STATUS,
   contentType: 'application/json',
   body: { id: input.body.email },
 }));
 
-// @ts-expect-error status 200 is not declared by the contract
-bindContract(contract, async (_ctx, respond) => respond.json(200, { id: 'x' }));
+bindContract(contract, async (_ctx, respond) =>
+  // @ts-expect-error status 200 is not declared by the contract
+  respond.json(OK_STATUS, { id: 'x' }),
+);
 
-// @ts-expect-error body does not match declared response schema
-bindContract(contract, async (_ctx, respond) => respond.json(201, { id: 123 }));
+bindContract(contract, async (_ctx, respond) =>
+  // @ts-expect-error body does not match declared response schema
+  respond.json(CREATED_STATUS, { id: INVALID_NUMBER_ID }),
+);
 
 bindContract(multiContentContract, async (_ctx, respond) =>
-  respond.text(200, 'ok'),
+  respond.text(OK_STATUS, 'ok'),
 );
 
 bindContract(multiContentContract, async (_ctx, respond) =>
   // @ts-expect-error body does not match declared text/plain schema
-  respond.text(200, 42),
+  respond.text(OK_STATUS, INVALID_TEXT_BODY),
 );
 
 // Test path field is accepted (typed routes integration foundation)

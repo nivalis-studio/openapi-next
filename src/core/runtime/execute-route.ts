@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import { HTTP_STATUS } from '../../lib/http';
 import { errorResponseBody, internalErrorBody } from '../errors/error-shape';
 import { isJsonMediaType, normalizeMediaType } from './media-type';
 import { createResponder } from './respond';
@@ -13,7 +14,6 @@ import type {
 import type { ErrorCode } from '../errors/error-codes';
 
 const asErrorCode = (code: string): ErrorCode => code as ErrorCode;
-const INTERNAL_SERVER_ERROR_STATUS = 500;
 
 const normalizeHeaders = (
   headers: RouteHeaders | undefined,
@@ -126,12 +126,12 @@ const executeRouteEffect = <TContract extends RouteContract>(
       Effect.sync(() => {
         if (error._tag === 'HandlerError') {
           return Response.json(internalErrorBody(error.error), {
-            status: INTERNAL_SERVER_ERROR_STATUS,
+            status: HTTP_STATUS.internalServerError,
           });
         }
 
         return Response.json(internalErrorBody(error.error), {
-          status: INTERNAL_SERVER_ERROR_STATUS,
+          status: HTTP_STATUS.internalServerError,
         });
       }),
     ),

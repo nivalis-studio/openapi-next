@@ -2,8 +2,9 @@ import { describe, expect, it } from 'bun:test';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { bindContract, defineContract } from '../core/define-route';
+import { HTTP_STATUS } from '../lib/http';
 
-const OK_STATUS = 200;
+const OK_STATUS = HTTP_STATUS.ok;
 
 describe('next adapter', () => {
   it('executes route through bindContract', async () => {
@@ -60,7 +61,7 @@ describe('next adapter', () => {
     const GET = bindContract(
       contract,
       ({ request, params, query }, respond) => {
-        return respond.json(200, {
+        return respond.json(OK_STATUS, {
           echo: `${new URL(request.url).hostname}:${params.region}:${query.ping}`,
         });
       },
@@ -94,7 +95,7 @@ describe('next adapter', () => {
     });
 
     const GET = bindContract(contract, (_ctx, respond) =>
-      respond.json(200, { ok: true as const }),
+      respond.json(OK_STATUS, { ok: true as const }),
     );
 
     expect('_generateOpenApi' in GET).toBe(false);

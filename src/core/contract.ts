@@ -1,19 +1,13 @@
 import type { NextRequest } from 'next/server';
 import type { z } from 'zod';
+import type { HttpMethod } from '../lib/http';
+
+export type { HttpMethod } from '../lib/http';
 
 export type RouteHeaders =
   | Headers
   | Record<string, string>
   | Array<[string, string]>;
-
-export type HttpMethod =
-  | 'GET'
-  | 'POST'
-  | 'PUT'
-  | 'PATCH'
-  | 'DELETE'
-  | 'OPTIONS'
-  | 'HEAD';
 
 export type RouteInput = {
   params?: z.ZodType;

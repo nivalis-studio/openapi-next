@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { HTTP_ERROR_MESSAGE, HTTP_STATUS } from '../../lib/http';
 import { validateInput } from './validation';
 
-const BAD_REQUEST_STATUS = 400;
-const METHOD_NOT_ALLOWED_STATUS = 405;
-const UNSUPPORTED_MEDIA_TYPE_STATUS = 415;
+const BAD_REQUEST_STATUS = HTTP_STATUS.badRequest;
+const METHOD_NOT_ALLOWED_STATUS = HTTP_STATUS.methodNotAllowed;
+const UNSUPPORTED_MEDIA_TYPE_STATUS = HTTP_STATUS.unsupportedMediaType;
 
 describe('validateInput', () => {
   it('rejects mismatched content-type when body schema exists', async () => {
@@ -186,7 +187,9 @@ describe('validateInput', () => {
     if (!result.ok) {
       expect(result.error.status).toBe(BAD_REQUEST_STATUS);
       expect(result.error.code).toBe('INVALID_PARAMS');
-      expect(result.error.message).toBe('Invalid path parameters.');
+      expect(result.error.message).toBe(
+        HTTP_ERROR_MESSAGE.invalidPathParameters,
+      );
     }
   });
 

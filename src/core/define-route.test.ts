@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { HTTP_STATUS } from '../lib/http';
 import { bindContract, defineContract } from './define-route';
 
-const OK_STATUS = 200;
+const OK_STATUS = HTTP_STATUS.ok;
 
 describe('bindContract', () => {
   it('binds a contract to a Next-style handler', async () => {
@@ -26,7 +27,7 @@ describe('bindContract', () => {
     });
 
     const GET = bindContract(contract, async ({ query }, respond) =>
-      respond.json(200, { success: query.page >= 1 }),
+      respond.json(OK_STATUS, { success: query.page >= 1 }),
     );
 
     expect(typeof GET).toBe('function');

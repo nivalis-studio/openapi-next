@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { HTTP_STATUS } from '../../lib/http';
 import { executeRoute } from './execute-route';
 
-const BAD_REQUEST_STATUS = 400;
-const INTERNAL_SERVER_ERROR_STATUS = 500;
-const OK_STATUS = 200;
+const BAD_REQUEST_STATUS = HTTP_STATUS.badRequest;
+const INTERNAL_SERVER_ERROR_STATUS = HTTP_STATUS.internalServerError;
+const OK_STATUS = HTTP_STATUS.ok;
 const TEXT_PLAIN = 'text/plain';
 
 describe('executeRoute', () => {
@@ -280,7 +281,7 @@ describe('executeRoute', () => {
       ({ request: req, query }, respond) => {
         didReceiveSameRequest = req === request;
 
-        return respond.json(200, { echo: `${req.method}:${query.page}` });
+        return respond.json(OK_STATUS, { echo: `${req.method}:${query.page}` });
       },
       request,
       context,

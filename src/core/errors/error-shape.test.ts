@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'bun:test';
+import { HTTP_ERROR_MESSAGE, HTTP_STATUS } from '../../lib/http';
 import { errorResponseBody, internalErrorBody } from './error-shape';
 
-const BAD_REQUEST_STATUS = 400;
+const BAD_REQUEST_STATUS = HTTP_STATUS.badRequest;
 
 describe('error-shape', () => {
   it('returns stable public shape without leaking stack traces', () => {
@@ -10,7 +11,7 @@ describe('error-shape', () => {
 
     expect(body.success).toBe(false);
     expect(body.error.code).toBe('INTERNAL_ERROR');
-    expect(body.error.message).toBe('An unknown error occurred.');
+    expect(body.error.message).toBe(HTTP_ERROR_MESSAGE.internalServerError);
     expect(JSON.stringify(body)).not.toContain('db password leaked');
   });
 
