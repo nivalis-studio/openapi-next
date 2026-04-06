@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import './extension-resolver-loader';
 import {
   discoverContractFiles,
   discoverRouteFiles,
@@ -22,6 +23,32 @@ export type GenerateOpenapiCoverageResult = {
   coverage: ReturnType<typeof buildCoverageReport>;
 };
 
+let didRegisterExtensionResolver = false;
+
+const toLoaderUrl = (): URL =>
+  import.meta.url.endsWith('.ts')
+    ? new URL('./extension-resolver-loader.ts', import.meta.url)
+    : new URL('./extension-resolver-loader.js', import.meta.url);
+
+const registerExtensionResolver = async () => {
+  if (didRegisterExtensionResolver) {
+    return;
+  }
+
+  try {
+    const moduleNamespace = await import('node:module');
+    const register =
+      'register' in moduleNamespace ? moduleNamespace.register : undefined;
+
+    if (typeof register === 'function') {
+      register(toLoaderUrl(), import.meta.url);
+      didRegisterExtensionResolver = true;
+    }
+  } catch {
+    // Best effort: when register() is unavailable, fallback to native resolution.
+  }
+};
+
 export const generateOpenapiSpecWithCoverage = async (
   info: OpenapiInfo,
 ): Promise<GenerateOpenapiCoverageResult> => {
@@ -41,6 +68,8 @@ export const generateOpenapiSpecWithCoverage = async (
     routeFiles,
     contractFiles,
   });
+
+  await registerExtensionResolver();
 
   const contractModules = await Promise.all(
     contractFiles.map(async filePath => ({
