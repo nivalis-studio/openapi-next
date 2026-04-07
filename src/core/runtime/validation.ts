@@ -158,11 +158,11 @@ const resolveAndValidateParams = (
   paramsPromise: Promise<unknown>,
 ): Effect.Effect<unknown, InputError> =>
   Effect.gen(function* () {
-    const rawParams = yield* resolveParams(paramsPromise);
-
     if (!routeInput?.params) {
-      return rawParams;
+      return {};
     }
+
+    const rawParams = yield* resolveParams(paramsPromise);
 
     const paramsResult = routeInput.params.safeParse(rawParams);
     if (!paramsResult.success) {
