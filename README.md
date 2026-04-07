@@ -99,6 +99,30 @@ await generateOpenapiSpec({
 });
 ```
 
+## Troubleshooting
+
+### Next build fails on `extension-resolver-loader.ts`
+
+If Turbopack fails while bundling `@nivalis/openapi-next` with an error like:
+
+```text
+Module not found: Can't resolve './extension-resolver-loader.ts'
+```
+
+add this to your `next.config.ts`:
+
+```ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  serverExternalPackages: ["@nivalis/openapi-next"],
+};
+
+export default nextConfig;
+```
+
+This keeps Next from bundling the package internals during app build.
+
 ## Migration guide
 
 See `docs/migrations/v3.md` for breaking changes and migration examples.
